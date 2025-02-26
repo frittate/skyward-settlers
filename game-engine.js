@@ -10,8 +10,8 @@ class GameEngine {
     this.askQuestion = askQuestion;
     this.day = 1;
     this.resources = {
-      food: 5,
-      water: 5,
+      food: 8,  // Increased starting resources
+      water: 8,
       meds: 1
     };
     this.settlers = [
@@ -124,10 +124,15 @@ class GameEngine {
         
         // Boost settler morale on successful return with resources
         if (Object.values(expedition.resources).some(val => val > 0)) {
-          settler.morale = Math.min(100, settler.morale + 15);
-          this.logEvent(`- ${settler.name} has returned from the ${expedition.radius} radius with ${resourceString || "no resources"}. (+15 morale from successful expedition)`);
+          const moraleBoost = expedition.jackpotFind ? 25 : 15;
+          settler.morale = Math.min(100, settler.morale + moraleBoost);
+          let message = `- ${settler.name} has returned from the ${expedition.radius} radius with ${resourceString || "no resources"}. (+${moraleBoost} morale from successful expedition)`;
+          if (expedition.jackpotFind) {
+            message += " They found an exceptional cache of supplies!";
+          }
+          this.logEvent(message);
         } else {
-          this.logEvent(`- ${settler.name} has returned from the ${expedition.radius} radius with no resources.`);
+          this.logEvent(`- ${settler.name} has returned from the ${expedition.radius} radius with no resources. The expedition was a failure.`);
         }
         
         // Report expedition events
@@ -391,9 +396,9 @@ class GameEngine {
             console.log(restResult);
           } else if (settler.health > 20) {
             console.log("\nChoose expedition radius:");
-            console.log("1. Small (1-2 days, safer but less resources)");
-            console.log("2. Medium (2-4 days, balanced risk/reward)");
-            console.log("3. Large (3-5 days, dangerous but more resources)");
+            console.log("1. Small (1-2 days, costs 1 food & 1 water)");
+            console.log("2. Medium (2-4 days, costs 2 food & 2 water)");
+            console.log("3. Large (3-5 days, costs 3 food & 3 water)");
             
             const radiusChoice = await this.askQuestion("Select radius (1-3): ");
             let radius;
@@ -414,23 +419,38 @@ class GameEngine {
             
             // Create a new expedition with randomized duration
             const expedition = new Expedition(settler, radius);
-            const returnDay = this.day + expedition.duration;
-            expedition.returnDay = returnDay;
             
-            // Process expedition events and resources
-            expedition.processExpedition(this.eventSystem);
-            
-            // Mark settler as busy
-            settler.busy = true;
-            settler.busyUntil = returnDay;
-            
-            // Add to active expeditions
-            this.expeditions.push(expedition);
-            
-            expeditionCount++;
-            
-            // Don't reveal return day to increase tension
-            this.logEvent(`${settler.name} set out on a ${radius} radius expedition.`);
+            // Check if we have enough supplies for the expedition
+            if (this.resources.food >= expedition.supplyCost.food && 
+                this.resources.water >= expedition.supplyCost.water) {
+                
+              // Deduct the supplies
+              this.resources.food -= expedition.supplyCost.food;
+              this.resources.water -= expedition.supplyCost.water;
+              
+              const returnDay = this.day + expedition.duration;
+              expedition.returnDay = returnDay;
+              
+              // Process expedition events and resources
+              expedition.processExpedition(this.eventSystem);
+              
+              // Mark settler as busy
+              settler.busy = true;
+              settler.busyUntil = returnDay;
+              
+              // Add to active expeditions
+              this.expeditions.push(expedition);
+              
+              expeditionCount++;
+              
+              // Don't reveal return day to increase tension
+              this.logEvent(`${settler.name} set out on a ${radius} radius expedition with ${expedition.supplyCost.food} food and ${expedition.supplyCost.water} water.`);
+            } else {
+              console.log(`Not enough supplies! This expedition requires ${expedition.supplyCost.food} food and ${expedition.supplyCost.water} water.`);
+              console.log(`${settler.name} will rest instead.`);
+              const restResult = settler.rest();
+              console.log(restResult);
+            }
           } else {
             console.log(`${settler.name} is too unhealthy to forage.`);
             console.log(`${settler.name} will rest instead.`);
@@ -529,13 +549,12 @@ class GameEngine {
     // Preview tomorrow's events
     console.log("\nTOMORROW'S PREVIEW:");
     
-    // Check for returning settlers
-    const returningSettlers = this.expeditions.filter(exp => exp.returnDay === this.day + 1);
-    if (returningSettlers.length > 0) {
-      console.log("Settlers returning tomorrow:");
-      returningSettlers.forEach(exp => console.log(`- ${exp.settler.name} will return from foraging`));
+    // DON'T show who returns tomorrow - just that someone might
+    const returningSettlerCount = this.expeditions.filter(exp => exp.returnDay === this.day + 1).length;
+    if (returningSettlerCount > 0) {
+      console.log(`- ${returningSettlerCount} expedition${returningSettlerCount > 1 ? 's' : ''} may return tomorrow.`);
     } else {
-      console.log("- No settlers returning tomorrow.");
+      console.log("- No expeditions expected to return tomorrow.");
     }
     
     // Resource needs preview

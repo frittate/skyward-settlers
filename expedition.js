@@ -33,6 +33,29 @@ class Expedition {
     this.failureReason = null; // Reason if expedition fails to find resources
     this.statusReport = null; // Mid-expedition status report
     this.statusReportDay = 0; // Day when status report is generated
+    this.jackpotFind = false; // Flag for exceptional finds
+    
+    // Required supplies for expedition
+    this.supplyCost = {
+      food: 0,
+      water: 0
+    };
+    
+    // Set supply costs based on radius
+    switch(radius) {
+      case 'small':
+        this.supplyCost.food = 1;
+        this.supplyCost.water = 1;
+        break;
+      case 'medium':
+        this.supplyCost.food = 2;
+        this.supplyCost.water = 2;
+        break;
+      case 'large':
+        this.supplyCost.food = 3;
+        this.supplyCost.water = 3;
+        break;
+    }
   }
   
   addResource(type, amount) {
@@ -43,18 +66,18 @@ class Expedition {
   
   // Generate base resources based on radius and duration
   generateBaseResources() {
-    // Base multipliers for different radii
+    // Base multipliers for different radii - increased for better rewards
     const multipliers = {
-      'small': 1,
-      'medium': 1.5,
-      'large': 2
+      'small': 1.5,  // 1-3x return
+      'medium': 2,   // 2-4x return
+      'large': 3     // 3-6x return
     };
     
-    // Success chance varies by radius - smaller radius = higher chance of failure
+    // Success chance varies by radius - higher failure rates
     const successChance = {
-      'small': 0.7,  // 30% chance of failure
-      'medium': 0.8, // 20% chance of failure
-      'large': 0.9   // 10% chance of failure
+      'small': 0.6,  // 40% chance of failure
+      'medium': 0.7, // 30% chance of failure
+      'large': 0.8   // 20% chance of failure
     };
     
     // Check if expedition is successful at finding resources
@@ -62,22 +85,41 @@ class Expedition {
     
     if (!isSuccessful) {
       // Failed expedition - minimal or no resources
-      this.resources.food += Math.random() < 0.5 ? 1 : 0;
-      this.resources.water += Math.random() < 0.5 ? 1 : 0;
-      this.failureReason = "couldn't find many resources";
-      return;
+      if (Math.random() < 0.7) {  // 70% chance of complete failure
+        this.failureReason = "couldn't find any resources";
+        return;
+      } else {
+        // Partial failure - tiny amount of resources
+        this.resources.food += Math.random() < 0.5 ? 1 : 0;
+        this.resources.water += Math.random() < 0.5 ? 1 : 0;
+        this.failureReason = "found very little";
+        return;
+      }
     }
     
     // Calculate base amount from duration and radius
     const baseAmount = Math.floor(this.duration * multipliers[this.radius]);
     
+    // Add variability to resource returns
+    const variabilityFactor = Math.random() * 0.5 + 0.75; // 0.75-1.25x modifier
+    const adjustedAmount = Math.ceil(baseAmount * variabilityFactor);
+    
+    // Create "jackpot" chance for exceptional finds
+    const jackpot = Math.random() < 0.1; // 10% chance
+    const jackpotMultiplier = jackpot ? 2 : 1;
+    
     // Distribute resources - prioritize food and water
-    this.resources.food += Math.ceil(baseAmount * 0.4);
-    this.resources.water += Math.ceil(baseAmount * 0.4);
+    this.resources.food += Math.ceil(adjustedAmount * 0.4 * jackpotMultiplier);
+    this.resources.water += Math.ceil(adjustedAmount * 0.4 * jackpotMultiplier);
     
     // Medicine only available in medium and large radius expeditions
     if (this.radius !== 'small' && Math.random() < 0.3 * multipliers[this.radius]) {
-      this.resources.meds += 1;
+      this.resources.meds += jackpot ? randomInt(1, 3) : 1;
+    }
+    
+    // Add jackpot message if applicable
+    if (jackpot) {
+      this.jackpotFind = true;
     }
   }
   
