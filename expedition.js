@@ -4,6 +4,14 @@ class Expedition {
     this.settler = settler;
     this.radius = radius;
     
+    // Emergency expeditions have fixed duration
+    if (radius === 'emergency') {
+      this.duration = 1; // Always 1 day
+      this.supplyCost = { food: 0, water: 0 }; // No supplies needed
+      this.recoverTime = 1; // 1 day recovery
+      return;
+    }
+    
     // Longer expedition durations for increased tension
     if (!duration) {
       switch(radius) {
@@ -80,6 +88,21 @@ class Expedition {
   
   // Generate base resources based on radius and duration
   generateBaseResources() {
+    // Handle emergency expeditions differently
+    if (this.radius === 'emergency') {
+      // Much higher failure chance for emergency expeditions
+      if (Math.random() < 0.7) { // 70% chance of failure
+        this.failureReason = "couldn't find any resources";
+        return;
+      }
+      
+      // Very modest returns if successful
+      this.resources.food = Math.ceil(Math.random() * 2) + 1; // 1-3 food
+      this.resources.water = Math.ceil(Math.random() * 2) + 1; // 1-3 water
+      return;
+    }
+    
+    // Regular expedition resource generation
     // Improved multipliers for better rewards
     const multipliers = {
       'small': 2,     // 1.5-2.5x return

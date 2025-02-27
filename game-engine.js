@@ -75,7 +75,12 @@ class GameEngine {
     console.log(`\n--- DAY ${this.day} STATUS ---`);
     console.log('\nSETTLERS:');
     this.settlers.forEach((settler, index) => {
-      console.log(`${index + 1}. ${settler.toString()}`);
+      if (settler.busy) {
+        // Don't show health/morale for settlers on expedition
+        console.log(`${index + 1}. ${settler.name} (${settler.role}) - On expedition until day ${settler.busyUntil}`);
+      } else {
+        console.log(`${index + 1}. ${settler.toString()}`);
+      }
     });
 
     console.log('\nRESOURCES:');
@@ -383,7 +388,12 @@ class GameEngine {
       
       // Only show foraging option if we haven't reached the limit
       if (expeditionCount < availableForExpedition) {
-        console.log("1. Send foraging");
+        // Check if emergency foraging is needed
+        if (this.resources.food === 0 && this.resources.water === 0) {
+          console.log("1. Emergency foraging (desperate measure, no supplies needed)");
+        } else {
+          console.log("1. Send foraging");
+        }
       } else {
         console.log("1. [UNAVAILABLE] Send foraging (must keep at least one settler at settlement)");
       }
@@ -407,61 +417,101 @@ class GameEngine {
           const restResult = settler.rest();
           console.log(restResult);
         } else if (settler.health > 20) {
-          console.log("\nChoose expedition radius:");
-          console.log("1. Small (2-3 days, costs 1 food & 1 water)");
-          console.log("2. Medium (3-5 days, costs 2 food & 2 water)");
-          console.log("3. Large (5-7 days, costs 3 food & 3 water)");
+          // Check if this is an emergency foraging situation
+          const isEmergency = this.resources.food === 0 && this.resources.water === 0;
           
-          const radiusChoice = await this.askQuestion("Select radius (1-3): ");
-          let radius;
-          
-          switch(radiusChoice) {
-            case '1':
-              radius = 'small';
-              break;
-            case '2':
-              radius = 'medium';
-              break;
-            case '3':
-              radius = 'large';
-              break;
-            default:
-              radius = 'small';
-          }
-          
-          // Create a new expedition with randomized duration
-          const expedition = new Expedition(settler, radius);
-          
-          // Check if we have enough supplies for the expedition
-          if (this.resources.food >= expedition.supplyCost.food && 
-              this.resources.water >= expedition.supplyCost.water) {
+          if (isEmergency) {
+            // Emergency foraging is always a 1-day small radius expedition with no supply cost
+            console.log("\nEMERGENCY FORAGING:");
+            console.log("- 1 day expedition");
+            console.log("- No supplies needed");
+            console.log("- High risk of failure (70%)");
+            console.log("- Low resource return if successful");
+            
+            const confirmEmergency = await this.askQuestion("Proceed with emergency foraging? (y/n): ");
+            
+            if (confirmEmergency.toLowerCase() === 'y') {
+              // Create emergency expedition
+              const expedition = new Expedition(settler, 'emergency');
+              const returnDay = this.day + 1; // Always 1 day
+              expedition.returnDay = returnDay;
               
-            // Deduct the supplies
-            this.resources.food -= expedition.supplyCost.food;
-            this.resources.water -= expedition.supplyCost.water;
-            
-            const returnDay = this.day + expedition.duration;
-            expedition.returnDay = returnDay;
-            
-            // Process expedition events and resources
-            expedition.processExpedition(this.eventSystem);
-            
-            // Mark settler as busy
-            settler.busy = true;
-            settler.busyUntil = returnDay;
-            
-            // Add to active expeditions
-            this.expeditions.push(expedition);
-            
-            expeditionCount++;
-            
-            // Don't reveal return day to increase tension
-            this.logEvent(`${settler.name} set out on a ${radius} radius expedition with ${expedition.supplyCost.food} food and ${expedition.supplyCost.water} water.`);
+              // Process expedition events and resources
+              expedition.processExpedition(this.eventSystem);
+              
+              // Mark settler as busy
+              settler.busy = true;
+              settler.busyUntil = returnDay;
+              
+              // Add to active expeditions
+              this.expeditions.push(expedition);
+              
+              expeditionCount++;
+              
+              this.logEvent(`${settler.name} set out on an emergency foraging mission. They should return tomorrow.`);
+            } else {
+              console.log(`${settler.name} will rest instead.`);
+              const restResult = settler.rest();
+              console.log(restResult);
+            }
           } else {
-            console.log(`Not enough supplies! This expedition requires ${expedition.supplyCost.food} food and ${expedition.supplyCost.water} water.`);
-            console.log(`${settler.name} will rest instead.`);
-            const restResult = settler.rest();
-            console.log(restResult);
+            // Normal expedition process
+            console.log("\nChoose expedition radius:");
+            console.log("1. Small (2-3 days, costs 1 food & 1 water)");
+            console.log("2. Medium (3-5 days, costs 2 food & 2 water)");
+            console.log("3. Large (5-7 days, costs 3 food & 3 water)");
+            
+            const radiusChoice = await this.askQuestion("Select radius (1-3): ");
+            let radius;
+            
+            switch(radiusChoice) {
+              case '1':
+                radius = 'small';
+                break;
+              case '2':
+                radius = 'medium';
+                break;
+              case '3':
+                radius = 'large';
+                break;
+              default:
+                radius = 'small';
+            }
+            
+            // Create a new expedition with randomized duration
+            const expedition = new Expedition(settler, radius);
+            
+            // Check if we have enough supplies for the expedition
+            if (this.resources.food >= expedition.supplyCost.food && 
+                this.resources.water >= expedition.supplyCost.water) {
+                
+              // Deduct the supplies
+              this.resources.food -= expedition.supplyCost.food;
+              this.resources.water -= expedition.supplyCost.water;
+              
+              const returnDay = this.day + expedition.duration;
+              expedition.returnDay = returnDay;
+              
+              // Process expedition events and resources
+              expedition.processExpedition(this.eventSystem);
+              
+              // Mark settler as busy
+              settler.busy = true;
+              settler.busyUntil = returnDay;
+              
+              // Add to active expeditions
+              this.expeditions.push(expedition);
+              
+              expeditionCount++;
+              
+              // Don't reveal return day to increase tension
+              this.logEvent(`${settler.name} set out on a ${radius} radius expedition with ${expedition.supplyCost.food} food and ${expedition.supplyCost.water} water.`);
+            } else {
+              console.log(`Not enough supplies! This expedition requires ${expedition.supplyCost.food} food and ${expedition.supplyCost.water} water.`);
+              console.log(`${settler.name} will rest instead.`);
+              const restResult = settler.rest();
+              console.log(restResult);
+            }
           }
         } else {
           console.log(`${settler.name} is too unhealthy to forage.`);
