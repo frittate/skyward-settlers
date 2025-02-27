@@ -8,34 +8,8 @@ class Expedition {
   constructor(settler, radius, duration = null) {
     this.settler = settler;
     this.radius = radius;
-    
-    // Emergency expeditions have fixed duration
-    if (radius === 'emergency') {
-      this.duration = 1; // Always 1 day
-      this.supplyCost = { food: 0, water: 0 }; // No supplies needed
-      this.recoverTime = 1; // 1 day recovery
-      return;
-    }
-    
-    // Longer expedition durations for increased tension
-    if (!duration) {
-      switch(radius) {
-        case 'small':
-          this.duration = Math.floor(Math.random() * 2) + 2; // 2-3 days
-          break;
-        case 'medium':
-          this.duration = Math.floor(Math.random() * 3) + 3; // 3-5 days
-          break;
-        case 'large':
-          this.duration = Math.floor(Math.random() * 3) + 5; // 5-7 days
-          break;
-        default:
-          this.duration = 2;
-      }
-    } else {
-      this.duration = duration;
-    }
-    
+    this.foundSurvivor = false;
+    this.survivor = null;
     this.resources = {
       food: 0,
       water: 0,
@@ -43,55 +17,80 @@ class Expedition {
     };
     this.events = [];
     this.returnDay = 0; // Will be set by the game
-    this.failureReason = null; // Reason if expedition fails to find resources
-    this.statusReport = null; // Mid-expedition status report
-    this.statusReportDay = 0; // Day when status report is generated
-    this.jackpotFind = false; // Flag for exceptional finds
+    this.failureReason = null;
+    this.statusReport = null;
+    this.statusReportDay = 0;
+    this.jackpotFind = false;
     
-    // Required supplies for expedition
-    this.supplyCost = {
-      food: 0,
-      water: 0
-    };
-    
-    // Set supply costs based on radius
-    switch(radius) {
-      case 'small':
-        this.supplyCost.food = 1;
-        this.supplyCost.water = 1;
-        break;
-      case 'medium':
-        this.supplyCost.food = 2;
-        this.supplyCost.water = 2;
-        break;
-      case 'large':
-        this.supplyCost.food = 3;
-        this.supplyCost.water = 3;
-        break;
-    }
-    
-    // Recovery time needed after expedition
-    this.recoverTime = 0;
-    switch(radius) {
-      case 'small':
-        this.recoverTime = 1; // 1 day recovery
-        break;
-      case 'medium':
-        this.recoverTime = 2; // 2 days recovery
-        break;
-      case 'large':
-        this.recoverTime = 3; // 3 days recovery
-        break;
+    // Emergency expeditions have fixed duration
+    if (radius === 'emergency') {
+      this.duration = 1; // Always 1 day
+      this.supplyCost = { food: 0, water: 0 }; // No supplies needed
+      this.recoverTime = 1; // 1 day recovery
+    } else {
+      // Longer expedition durations for increased tension
+      if (!duration) {
+        switch(radius) {
+          case 'small':
+            this.duration = Math.floor(Math.random() * 2) + 2; // 2-3 days
+            break;
+          case 'medium':
+            this.duration = Math.floor(Math.random() * 3) + 3; // 3-5 days
+            break;
+          case 'large':
+            this.duration = Math.floor(Math.random() * 3) + 5; // 5-7 days
+            break;
+          default:
+            this.duration = 2;
+        }
+      } else {
+        this.duration = duration;
+      }
+
+      // Required supplies for expedition
+      this.supplyCost = {
+        food: 0,
+        water: 0
+      };
+      
+      // Set supply costs based on radius
+      switch(radius) {
+        case 'small':
+          this.supplyCost.food = 1;
+          this.supplyCost.water = 1;
+          break;
+        case 'medium':
+          this.supplyCost.food = 2;
+          this.supplyCost.water = 2;
+          break;
+        case 'large':
+          this.supplyCost.food = 3;
+          this.supplyCost.water = 3;
+          break;
+      }
+      
+      // Recovery time needed after expedition
+      this.recoverTime = 0;
+      switch(radius) {
+        case 'small':
+          this.recoverTime = 1; // 1 day recovery
+          break;
+        case 'medium':
+          this.recoverTime = 2; // 2 days recovery
+          break;
+        case 'large':
+          this.recoverTime = 3; // 3 days recovery
+          break;
+      }
     }
   }
   
+  // Add resource to the expedition
   addResource(type, amount) {
     if (this.resources[type] !== undefined) {
       this.resources[type] += amount;
     }
   }
-  
-  // Generate base resources based on radius and duration
   generateBaseResources() {
     // Handle emergency expeditions differently
     if (this.radius === 'emergency') {
@@ -171,40 +170,7 @@ class Expedition {
     }
   }
   
-  // Process the expedition and its events
-  processExpedition(eventSystem) {
-    // Generate base resources
-    this.generateBaseResources();
-    
-    // Generate events for each day
-    for (let day = 1; day <= this.duration; day++) {
-      const event = eventSystem.generateEvent(this.settler, this);
-      if (event) {
-        this.events.push({
-          day: day,
-          ...event
-        });
-      }
-    }
-    
-    // Create status report for longer expeditions
-    if (this.duration >= 2) {
-      // Status report comes halfway through
-      this.statusReportDay = Math.floor(this.duration / 2);
-      
-      // Generate status update based on resources found and events
-      this.generateStatusReport();
-    }
-    
-    return {
-      resources: this.resources,
-      events: this.events,
-      statusReport: this.statusReport,
-      statusReportDay: this.statusReportDay
-    };
-  }
-  
-  // Generate status report for mid-expedition updates
+  // Generate a status report for mid-expedition updates
   generateStatusReport() {
     // Default reports
     const possibleReports = [
@@ -246,6 +212,92 @@ class Expedition {
     
     // No return time information - more tension
     this.statusReport = report;
+  }
+  
+  // Process the expedition and its events
+  processExpedition(eventSystem) {
+    // Generate base resources
+    this.generateBaseResources();
+    
+    // Generate events for each day
+    for (let day = 1; day <= this.duration; day++) {
+      const event = eventSystem.generateEvent(this.settler, this);
+      if (event) {
+        this.events.push({
+          day: day,
+          ...event
+        });
+      }
+    }
+    
+    // Chance to find a survivor (only for non-emergency expeditions)
+    if (this.radius !== 'emergency') {
+      const survivorChance = {
+        'small': 0.05,  // 5% chance
+        'medium': 0.10, // 10% chance
+        'large': 0.15   // 15% chance
+      };
+      
+      if (Math.random() < survivorChance[this.radius]) {
+        this.generateSurvivor();
+      }
+    }
+    
+    // Create status report for longer expeditions
+    if (this.duration >= 2) {
+      // Status report comes halfway through
+      this.statusReportDay = Math.floor(this.duration / 2);
+      
+      // Generate status update based on resources found and events
+      this.generateStatusReport();
+    }
+    
+    return {
+      resources: this.resources,
+      events: this.events,
+      statusReport: this.statusReport,
+      statusReportDay: this.statusReportDay,
+      foundSurvivor: this.foundSurvivor,
+      survivor: this.survivor
+    };
+  }
+  
+  // Generate a random survivor
+  generateSurvivor() {
+    this.foundSurvivor = true;
+    
+    // Random survivor attributes
+    const health = randomInt(30, 70);
+    const morale = randomInt(40, 80);
+    
+    // Determine role with weighted probability
+    const roleRoll = Math.random();
+    let role;
+    
+    if (roleRoll < 0.60) {
+      role = 'Generalist';
+    } else if (roleRoll < 0.90) {
+      role = 'Mechanic';
+    } else {
+      role = 'Medic';
+    }
+    
+    // Generate a random name
+    const survivorNames = [
+      'Riley', 'Jordan', 'Taylor', 'Casey', 'Quinn', 'Avery', 
+      'Blake', 'Drew', 'Jamie', 'Morgan', 'Rowan', 'Reese',
+      'Skyler', 'Dakota', 'Kendall', 'Parker', 'Hayden', 'Finley'
+    ];
+    const name = survivorNames[Math.floor(Math.random() * survivorNames.length)];
+    
+    // Random gift (small amount of resources they bring)
+    const gift = {
+      food: Math.random() < 0.5 ? randomInt(1, 2) : 0,
+      water: Math.random() < 0.5 ? randomInt(1, 2) : 0,
+      meds: role === 'Medic' ? 1 : (Math.random() < 0.2 ? 1 : 0)  // Medics always bring 1 medicine
+    };
+    
+    this.survivor = { name, role, health, morale, gift };
   }
 }
 

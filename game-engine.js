@@ -10,8 +10,8 @@ class GameEngine {
     this.askQuestion = askQuestion;
     this.day = 1;
     this.resources = {
-      food: 8,  // Increased starting resources
-      water: 8,
+      food: 9,  // Increased starting resources
+      water: 9,
       meds: 1
     };
     this.settlers = [
@@ -153,6 +153,11 @@ class GameEngine {
           this.logEvent(`- ${settler.name} has returned from the ${expedition.radius} radius with no resources. The expedition was a failure. They need ${expedition.recoverTime} days to recover.`);
         }
         
+        // Check if they found a survivor
+        if (expedition.foundSurvivor && expedition.survivor) {
+          await this.handleFoundSurvivor(expedition.survivor);
+        }
+        
         // Report expedition events
         if (expedition.events.length > 0) {
           console.log(`\n  ${settler.name}'s Expedition Events:`);
@@ -172,10 +177,10 @@ class GameEngine {
     // Display settler status changes
     console.log("\nSETTLER STATUS:");
     this.settlers.forEach(settler => {
-      if (settler.health < 50) {
+      if (settler.health < 50 && !settler.busy) {
         console.log(`- ${settler.name} is in poor health (${settler.health}/100).`);
       }
-      if (settler.morale < 50) {
+      if (settler.morale < 50 && !settler.busy) {
         console.log(`- ${settler.name} has low morale (${settler.morale}/100).`);
       }
     });
@@ -184,6 +189,51 @@ class GameEngine {
     this.displayStatus();
     
     await this.askQuestion("\nPress Enter to continue to Resource Distribution...");
+  }
+  
+  // Handle found survivor
+  async handleFoundSurvivor(survivor) {
+    console.log("\n=== SURVIVOR FOUND ===");
+    console.log(`${survivor.name}, a ${survivor.role}, was found during the expedition!`);
+    console.log(`Health: ${survivor.health}, Morale: ${survivor.morale}`);
+    
+    // Show what resources the survivor brings
+    const giftString = formatResourceList(survivor.gift);
+    if (giftString) {
+      console.log(`They're offering to share their remaining supplies: ${giftString}`);
+    }
+    
+    if (survivor.role === 'Medic') {
+      console.log("A medic would allow you to heal wounded settlers and improve health!");
+    } else if (survivor.role === 'Mechanic') {
+      console.log("A mechanic would allow you to build structures once you have materials!");
+    }
+    
+    // Ask if player wants to accept the survivor
+    const acceptSurvivor = await this.askQuestion("Do you want to accept this survivor into your settlement? (y/n): ");
+    
+    if (acceptSurvivor.toLowerCase() === 'y') {
+      // Add the survivor to the settlement
+      const newSettler = new Settler(survivor.name, survivor.role, survivor.health, survivor.morale);
+      this.settlers.push(newSettler);
+      
+      // Add their gift to resources
+      for (const [resource, amount] of Object.entries(survivor.gift)) {
+        this.resources[resource] += amount;
+      }
+      
+      this.logEvent(`${survivor.name} (${survivor.role}) has joined the settlement!`);
+      if (giftString) {
+        this.logEvent(`${survivor.name} contributed ${giftString} to the community supplies.`);
+      }
+      
+      // Special message for medic
+      if (survivor.role === 'Medic') {
+        this.logEvent("You now have a medic who can heal wounded settlers!");
+      }
+    } else {
+      this.logEvent(`You decided not to accept ${survivor.name} into the settlement.`);
+    }
   }
   
   // PHASE 2: MIDDAY - Distribute resources to settlers
@@ -636,6 +686,15 @@ class GameEngine {
     // Phase 1: Morning - Returns and reports
     await this.morningPhase();
     
+    // Check if all settlers at home have died but some are on expedition
+    const homeSettlers = this.settlers.filter(s => !s.busy);
+    const expeditionSettlers = this.settlers.filter(s => s.busy);
+    
+    if (homeSettlers.length === 0 && expeditionSettlers.length > 0) {
+      console.log("\n! CRITICAL SITUATION: All settlers at the settlement have died or left!");
+      console.log(`There are still ${expeditionSettlers.length} settlers on expedition who may return.`);
+    }
+    
     // Phase 2: Midday - Resource distribution
     await this.middayPhase();
     
@@ -645,7 +704,7 @@ class GameEngine {
     // Phase 4: Evening - Day summary
     const continueGame = await this.eveningPhase();
     
-    // Check for game over
+    // Check for game over - only if ALL settlers are gone
     if (this.settlers.length === 0) {
       console.log("\n*** GAME OVER ***");
       console.log("All settlers have died or left the settlement.");
