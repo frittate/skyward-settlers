@@ -1,3 +1,8 @@
+// Add helper function for random integer generation
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 // Expedition class to handle foraging
 class Expedition {
   constructor(settler, radius, duration = null) {
