@@ -47,24 +47,35 @@ class Settler {
     }
   }
   
-  // Apply health/morale changes from resource consumption
-  updateWellbeing() {
+  // Apply health/morale changes from resource consumption with hope mitigation
+  updateWellbeing(hopeLevel = 0) {
     let changes = [];
+    
+    // Calculate hope mitigation factor (0-50% reduction in penalties)
+    const mitigation = Math.min(0.5, hopeLevel / 100);
     
     // Health effects from hunger - reduced penalties
     if (this.daysWithoutFood >= 1) {
       const oldHealth = this.health;
-      const healthLoss = this.daysWithoutFood >= 3 ? 15 : 10; // Critical hunger after 3 days
+      let healthLoss = this.daysWithoutFood >= 3 ? 15 : 10; // Critical hunger after 3 days
+      
+      // Apply hope mitigation
+      healthLoss = Math.ceil(healthLoss * (1 - mitigation));
+      
       this.health = Math.max(0, this.health - healthLoss);
       if (oldHealth !== this.health) {
         changes.push(`health -${healthLoss} (now ${this.health})`);
       }
     }
     
-    // Morale effects from thirst - unchanged
+    // Morale effects from thirst - reduced penalties
     if (this.daysWithoutWater >= 1) {
       const oldMorale = this.morale;
-      const moraleLoss = this.daysWithoutWater >= 2 ? 30 : 20; // Critical thirst after 2 days
+      let moraleLoss = this.daysWithoutWater >= 2 ? 25 : 15; // Critical thirst after 2 days
+      
+      // Apply hope mitigation
+      moraleLoss = Math.ceil(moraleLoss * (1 - mitigation));
+      
       this.morale = Math.max(0, this.morale - moraleLoss);
       if (oldMorale !== this.morale) {
         changes.push(`morale -${moraleLoss} (now ${this.morale})`);

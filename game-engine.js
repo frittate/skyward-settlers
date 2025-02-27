@@ -1,7 +1,7 @@
 const Settler = require('./settler');
 const Expedition = require('./expedition');
 const EventSystem = require('./event-system');
-const { printPhaseHeader, formatResourceList } = require('./utilities');
+const { printPhaseHeader, formatResourceList, randomInt } = require('./utilities');
 
 // Main game class
 class GameEngine {
@@ -26,6 +26,9 @@ class GameEngine {
     // Track resource stability
     this.daysWithFood = 0;
     this.daysWithWater = 0;
+    
+    // Settlement hope system
+    this.hope = 50; // Starting hope
   }
   
   // Track resource stability for morale boosts
@@ -87,12 +90,158 @@ class GameEngine {
     console.log(`Food: ${this.resources.food}`);
     console.log(`Water: ${this.resources.water}`);
     console.log(`Meds: ${this.resources.meds}`);
+    
+    // Display Settlement Hope
+    console.log(`\nSETTLEMENT HOPE: ${this.hope}`);
+    this.displayHopeEffect();
   }
   
-  // PHASE 1: MORNING - Process returning foragers and events
+  // Display the effect of current hope level
+  displayHopeEffect() {
+    const mitigationPercent = Math.min(50, Math.floor(this.hope / 2));
+    let hopeDescription;
+    
+    if (this.hope >= 80) {
+      hopeDescription = "Your settlers are inspired and optimistic about their future.";
+    } else if (this.hope >= 60) {
+      hopeDescription = "Your settlement has a positive atmosphere.";
+    } else if (this.hope >= 40) {
+      hopeDescription = "The mood in the settlement is cautiously hopeful.";
+    } else if (this.hope >= 20) {
+      hopeDescription = "Doubt and concern are spreading in the settlement.";
+    } else {
+      hopeDescription = "The settlement feels bleak and desperate.";
+    }
+    
+    console.log(`- ${hopeDescription}`);
+    console.log(`- Reduces health/morale penalties by ${mitigationPercent}%`);
+    
+    // Display visitor chance if hope is high enough
+    if (this.hope >= 30) {
+      const visitorChance = Math.min(15, 5 + Math.floor(this.hope / 10));
+      console.log(`- ${visitorChance}% daily chance of attracting visitors`);
+    }
+  }
+  
+  // Update settlement hope based on events
+  updateHope(amount, reason) {
+    const oldHope = this.hope;
+    this.hope = Math.max(0, Math.min(100, this.hope + amount));
+    
+    if (oldHope !== this.hope) {
+      if (amount > 0) {
+        console.log(`\nHope increased by ${amount} (${reason}). Settlement hope is now ${this.hope}.`);
+      } else {
+        console.log(`\nHope decreased by ${Math.abs(amount)} (${reason}). Settlement hope is now ${this.hope}.`);
+      }
+    }
+  }
+  
+  // Check for random visitor appearance based on hope
+  checkForVisitors() {
+    if (this.hope < 30) return; // Not enough hope to attract visitors
+    
+    const visitorChance = Math.min(15, 5 + Math.floor(this.hope / 10));
+    
+    if (Math.random() * 100 < visitorChance) {
+      this.generateVisitor();
+    }
+  }
+  
+  // Generate a random visitor for the settlement
+  async generateVisitor() {
+    // Random visitor attributes
+    const health = randomInt(40, 80);
+    const morale = randomInt(50, 90);
+    
+    // Determine role with weighted probability
+    const roleRoll = Math.random();
+    let role;
+    
+    if (roleRoll < 0.60) {
+      role = 'Generalist';
+    } else if (roleRoll < 0.90) {
+      role = 'Mechanic';
+    } else {
+      role = 'Medic';
+    }
+    
+    // Generate a random name
+    const survivorNames = [
+      'Riley', 'Jordan', 'Taylor', 'Casey', 'Quinn', 'Avery', 
+      'Blake', 'Drew', 'Jamie', 'Morgan', 'Rowan', 'Reese',
+      'Skyler', 'Dakota', 'Kendall', 'Parker', 'Hayden', 'Finley'
+    ];
+    const name = survivorNames[Math.floor(Math.random() * survivorNames.length)];
+    
+    // Random gift (small amount of resources they bring)
+    const gift = {
+      food: Math.random() < 0.7 ? randomInt(1, 2) : 0,
+      water: Math.random() < 0.7 ? randomInt(1, 2) : 0,
+      meds: role === 'Medic' ? 1 : (Math.random() < 0.3 ? 1 : 0)  // Medics always bring 1 medicine
+    };
+    
+    console.log("\n=== VISITOR ARRIVED ===");
+    console.log(`${name}, a ${role}, was attracted by your settlement's reputation!`);
+    console.log(`Health: ${health}, Morale: ${morale}`);
+    
+    // Show what resources the visitor brings
+    const giftString = formatResourceList(gift);
+    if (giftString) {
+      console.log(`They're offering to share their remaining supplies: ${giftString}`);
+    }
+    
+    if (role === 'Medic') {
+      console.log("A medic would allow you to heal wounded settlers and improve health!");
+    } else if (role === 'Mechanic') {
+      console.log("A mechanic would allow you to build structures once you have materials!");
+    }
+    
+    // Ask if player wants to accept the visitor
+    const acceptVisitor = await this.askQuestion("Do you want to accept this visitor into your settlement? (y/n): ");
+    
+    if (acceptVisitor.toLowerCase() === 'y') {
+      // Add the visitor to the settlement
+      const newSettler = new Settler(name, role, health, morale);
+      this.settlers.push(newSettler);
+      
+      // Add their gift to resources
+      for (const [resource, amount] of Object.entries(gift)) {
+        this.resources[resource] += amount;
+      }
+      
+      this.logEvent(`${name} (${role}) has joined the settlement!`);
+      if (giftString) {
+        this.logEvent(`${name} contributed ${giftString} to the community supplies.`);
+      }
+      
+      // Special message for medic
+      if (role === 'Medic') {
+        this.logEvent("You now have a medic who can heal wounded settlers!");
+      }
+      
+      // Hope boost for new settler
+      this.updateHope(15, "new settler joined");
+    } else {
+      this.logEvent(`You decided not to accept ${name} into the settlement.`);
+      // Small hope penalty for turning someone away
+      this.updateHope(-5, "turned away visitor");
+    }
+    
+    // Ensure the game continues after visitor decision
+    await this.askQuestion("\nPress Enter to continue...");
+  }
   async morningPhase() {
     printPhaseHeader("MORNING PHASE: RETURN & REPORT");
     console.log(`Day ${this.day} has begun.`);
+    
+    // Add daily hope for survival
+    if (this.day > 1) {
+      this.updateHope(5, "another day survived");
+    }
+    
+    // Check for random visitors based on hope
+    this.checkForVisitors();
     
     // Track consecutive days with sufficient resources
     this.trackResourceStability();
@@ -146,11 +295,15 @@ class GameEngine {
           let message = `- ${settler.name} has returned from the ${expedition.radius} radius with ${resourceString || "no resources"}. (+${moraleBoost} morale from successful expedition)`;
           if (expedition.jackpotFind) {
             message += " They found an exceptional cache of supplies!";
+            this.updateHope(15, "exceptional resource find");
+          } else {
+            this.updateHope(10, "successful expedition");
           }
           message += ` They need ${expedition.recoverTime} days to recover.`;
           this.logEvent(message);
         } else {
           this.logEvent(`- ${settler.name} has returned from the ${expedition.radius} radius with no resources. The expedition was a failure. They need ${expedition.recoverTime} days to recover.`);
+          this.updateHope(-5, "failed expedition");
         }
         
         // Check if they found a survivor
@@ -231,8 +384,13 @@ class GameEngine {
       if (survivor.role === 'Medic') {
         this.logEvent("You now have a medic who can heal wounded settlers!");
       }
+      
+      // Hope boost for new survivor
+      this.updateHope(20, "rescued survivor");
     } else {
       this.logEvent(`You decided not to accept ${survivor.name} into the settlement.`);
+      // Small hope penalty for turning someone away
+      this.updateHope(-5, "turned away survivor");
     }
   }
   
@@ -260,7 +418,7 @@ class GameEngine {
     // Update health and morale based on consumption
     console.log("\nHEALTH & MORALE UPDATES:");
     presentSettlers.forEach(settler => {
-      const changes = settler.updateWellbeing();
+      const changes = settler.updateWellbeing(this.hope);
       if (changes) {
         console.log(`- ${settler.name}: ${changes}`);
       } else {
@@ -389,6 +547,8 @@ class GameEngine {
       if (settler.health <= 0) {
         this.logEvent(`\n! ${settler.name} has died due to poor health!`);
         this.settlers.splice(i, 1);
+        // Major hope loss when settler dies
+        this.updateHope(-20, "settler death");
         continue;
       }
       
@@ -396,6 +556,8 @@ class GameEngine {
       if (settler.morale <= 0) {
         this.logEvent(`\n! ${settler.name} has left the settlement due to low morale!`);
         this.settlers.splice(i, 1);
+        // Major hope loss when settler leaves
+        this.updateHope(-15, "settler abandonment");
         continue;
       }
     }
@@ -597,6 +759,17 @@ class GameEngine {
           const restResult = settler.rest();
           console.log(restResult);
         }
+      } else if (taskChoice === '4') { // Share Stories
+        console.log(`${settler.name} shares stories and memories to build community spirit.`);
+        
+        // Boost settler's morale
+        const oldMorale = settler.morale;
+        settler.morale = Math.min(100, settler.morale + 10);
+        console.log(`${settler.name}'s morale improved from ${oldMorale} to ${settler.morale}.`);
+        
+        // Boost settlement hope
+        const hopeBoost = randomInt(5, 10);
+        this.updateHope(hopeBoost, "shared stories and memories");
       } else { // Rest or default
         const restResult = settler.rest();
         console.log(restResult);
