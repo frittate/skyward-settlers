@@ -92,6 +92,14 @@ class GameEngine {
     // Track consecutive days with sufficient resources
     this.trackResourceStability();
     
+    // Update recovery status for all settlers
+    this.settlers.forEach(settler => {
+      const recoveryMessage = settler.updateRecovery();
+      if (recoveryMessage) {
+        console.log(recoveryMessage);
+      }
+    });
+    
     // 1. Check for expedition status reports
     const activeExpeditions = this.expeditions.filter(exp => 
       exp.statusReportDay === this.day && exp.statusReport
@@ -114,6 +122,10 @@ class GameEngine {
         const settler = expedition.settler;
         settler.busy = false;
         
+        // Set recovery period
+        settler.recovering = true;
+        settler.recoveryDaysLeft = expedition.recoverTime;
+        
         // Add resources to settlement
         for (const [resource, amount] of Object.entries(expedition.resources)) {
           this.resources[resource] += amount;
@@ -130,9 +142,10 @@ class GameEngine {
           if (expedition.jackpotFind) {
             message += " They found an exceptional cache of supplies!";
           }
+          message += ` They need ${expedition.recoverTime} days to recover.`;
           this.logEvent(message);
         } else {
-          this.logEvent(`- ${settler.name} has returned from the ${expedition.radius} radius with no resources. The expedition was a failure.`);
+          this.logEvent(`- ${settler.name} has returned from the ${expedition.radius} radius with no resources. The expedition was a failure. They need ${expedition.recoverTime} days to recover.`);
         }
         
         // Report expedition events
@@ -337,8 +350,8 @@ class GameEngine {
   async afternoonPhase() {
     printPhaseHeader("AFTERNOON PHASE: TASK ASSIGNMENT");
     
-    // Get available (non-busy) settlers
-    const availableSettlers = this.settlers.filter(settler => !settler.busy);
+    // Get available (non-busy and non-recovering) settlers
+    const availableSettlers = this.settlers.filter(settler => !settler.busy && !settler.recovering);
     
     if (availableSettlers.length === 0) {
       console.log("No settlers available for tasks today.");
@@ -353,7 +366,7 @@ class GameEngine {
     
     // Calculate how many settlers we can send on expeditions
     // At least one settler must remain at the settlement
-    const availableForExpedition = Math.max(0, this.settlers.length - 1 - this.settlers.filter(s => s.busy).length);
+    const availableForExpedition = Math.max(0, this.settlers.length - 1 - this.settlers.filter(s => s.busy || s.recovering).length);
     if (availableForExpedition <= 0) {
       console.log("\nWARNING: You must keep at least one settler at the settlement!");
     }
@@ -387,114 +400,106 @@ class GameEngine {
       
       const taskChoice = await this.askQuestion("Choose task (1-3): ");
       
-      switch(taskChoice) {
-        case '1': // Foraging
-          if (expeditionCount >= availableForExpedition) {
-            console.log("You must keep at least one settler at the settlement!");
-            console.log(`${settler.name} will rest instead.`);
-            const restResult = settler.rest();
-            console.log(restResult);
-          } else if (settler.health > 20) {
-            console.log("\nChoose expedition radius:");
-            console.log("1. Small (1-2 days, costs 1 food & 1 water)");
-            console.log("2. Medium (2-4 days, costs 2 food & 2 water)");
-            console.log("3. Large (3-5 days, costs 3 food & 3 water)");
-            
-            const radiusChoice = await this.askQuestion("Select radius (1-3): ");
-            let radius;
-            
-            switch(radiusChoice) {
-              case '1':
-                radius = 'small';
-                break;
-              case '2':
-                radius = 'medium';
-                break;
-              case '3':
-                radius = 'large';
-                break;
-              default:
-                radius = 'small';
-            }
-            
-            // Create a new expedition with randomized duration
-            const expedition = new Expedition(settler, radius);
-            
-            // Check if we have enough supplies for the expedition
-            if (this.resources.food >= expedition.supplyCost.food && 
-                this.resources.water >= expedition.supplyCost.water) {
-                
-              // Deduct the supplies
-              this.resources.food -= expedition.supplyCost.food;
-              this.resources.water -= expedition.supplyCost.water;
-              
-              const returnDay = this.day + expedition.duration;
-              expedition.returnDay = returnDay;
-              
-              // Process expedition events and resources
-              expedition.processExpedition(this.eventSystem);
-              
-              // Mark settler as busy
-              settler.busy = true;
-              settler.busyUntil = returnDay;
-              
-              // Add to active expeditions
-              this.expeditions.push(expedition);
-              
-              expeditionCount++;
-              
-              // Don't reveal return day to increase tension
-              this.logEvent(`${settler.name} set out on a ${radius} radius expedition with ${expedition.supplyCost.food} food and ${expedition.supplyCost.water} water.`);
-            } else {
-              console.log(`Not enough supplies! This expedition requires ${expedition.supplyCost.food} food and ${expedition.supplyCost.water} water.`);
-              console.log(`${settler.name} will rest instead.`);
-              const restResult = settler.rest();
-              console.log(restResult);
-            }
-          } else {
-            console.log(`${settler.name} is too unhealthy to forage.`);
-            console.log(`${settler.name} will rest instead.`);
-            const restResult = settler.rest();
-            console.log(restResult);
-          }
-          break;
-        case '2': // Healing
-          if (hasMedic && settler.role === 'Medic' && this.resources.meds > 0) {
-            console.log("Who do you want to heal?");
-            this.settlers.forEach((s, idx) => {
-              console.log(`${idx + 1}. ${s.name} - Health: ${s.health}${s.wounded ? ' [WOUNDED]' : ''}`);
-            });
-            const targetChoice = await this.askQuestion("Choose settler to heal (1-" + this.settlers.length + "): ");
-            const targetIndex = parseInt(targetChoice, 10) - 1;
-            
-            if (targetIndex >= 0 && targetIndex < this.settlers.length) {
-              await this.healSettler(targetIndex);
-            } else {
-              console.log("Invalid choice, settler will rest instead.");
-              const restResult = settler.rest();
-              console.log(restResult);
-            }
-          } else {
-            if (!hasMedic) {
-              console.log("You need a medic to heal settlers!");
-            } else if (settler.role !== 'Medic') {
-              console.log(`Only a medic can heal settlers, and ${settler.name} is a ${settler.role}!`);
-            } else {
-              console.log("No medicine available!");
-            }
-            console.log(`${settler.name} will rest instead.`);
-            const restResult = settler.rest();
-            console.log(restResult);
-          }
-          break;
-        case '3': // Rest
+      if (taskChoice === '1') { // Foraging
+        if (expeditionCount >= availableForExpedition) {
+          console.log("You must keep at least one settler at the settlement!");
+          console.log(`${settler.name} will rest instead.`);
           const restResult = settler.rest();
           console.log(restResult);
-          break;
-        default:
-          console.log("Invalid choice, settler will rest by default.");
-          const defaultRestResult = settler.rest();
-          console.log(defaultRestResult);
+        } else if (settler.health > 20) {
+          console.log("\nChoose expedition radius:");
+          console.log("1. Small (2-3 days, costs 1 food & 1 water)");
+          console.log("2. Medium (3-5 days, costs 2 food & 2 water)");
+          console.log("3. Large (5-7 days, costs 3 food & 3 water)");
+          
+          const radiusChoice = await this.askQuestion("Select radius (1-3): ");
+          let radius;
+          
+          switch(radiusChoice) {
+            case '1':
+              radius = 'small';
+              break;
+            case '2':
+              radius = 'medium';
+              break;
+            case '3':
+              radius = 'large';
+              break;
+            default:
+              radius = 'small';
+          }
+          
+          // Create a new expedition with randomized duration
+          const expedition = new Expedition(settler, radius);
+          
+          // Check if we have enough supplies for the expedition
+          if (this.resources.food >= expedition.supplyCost.food && 
+              this.resources.water >= expedition.supplyCost.water) {
+              
+            // Deduct the supplies
+            this.resources.food -= expedition.supplyCost.food;
+            this.resources.water -= expedition.supplyCost.water;
+            
+            const returnDay = this.day + expedition.duration;
+            expedition.returnDay = returnDay;
+            
+            // Process expedition events and resources
+            expedition.processExpedition(this.eventSystem);
+            
+            // Mark settler as busy
+            settler.busy = true;
+            settler.busyUntil = returnDay;
+            
+            // Add to active expeditions
+            this.expeditions.push(expedition);
+            
+            expeditionCount++;
+            
+            // Don't reveal return day to increase tension
+            this.logEvent(`${settler.name} set out on a ${radius} radius expedition with ${expedition.supplyCost.food} food and ${expedition.supplyCost.water} water.`);
+          } else {
+            console.log(`Not enough supplies! This expedition requires ${expedition.supplyCost.food} food and ${expedition.supplyCost.water} water.`);
+            console.log(`${settler.name} will rest instead.`);
+            const restResult = settler.rest();
+            console.log(restResult);
+          }
+        } else {
+          console.log(`${settler.name} is too unhealthy to forage.`);
+          console.log(`${settler.name} will rest instead.`);
+          const restResult = settler.rest();
+          console.log(restResult);
+        }
+      } else if (taskChoice === '2') { // Healing
+        if (hasMedic && settler.role === 'Medic' && this.resources.meds > 0) {
+          console.log("Who do you want to heal?");
+          this.settlers.forEach((s, idx) => {
+            console.log(`${idx + 1}. ${s.name} - Health: ${s.health}${s.wounded ? ' [WOUNDED]' : ''}`);
+          });
+          const targetChoice = await this.askQuestion("Choose settler to heal (1-" + this.settlers.length + "): ");
+          const targetIndex = parseInt(targetChoice, 10) - 1;
+          
+          if (targetIndex >= 0 && targetIndex < this.settlers.length) {
+            await this.healSettler(targetIndex);
+          } else {
+            console.log("Invalid choice, settler will rest instead.");
+            const restResult = settler.rest();
+            console.log(restResult);
+          }
+        } else {
+          if (!hasMedic) {
+            console.log("You need a medic to heal settlers!");
+          } else if (settler.role !== 'Medic') {
+            console.log(`Only a medic can heal settlers, and ${settler.name} is a ${settler.role}!`);
+          } else {
+            console.log("No medicine available!");
+          }
+          console.log(`${settler.name} will rest instead.`);
+          const restResult = settler.rest();
+          console.log(restResult);
+        }
+      } else { // Rest or default
+        const restResult = settler.rest();
+        console.log(restResult);
       }
     }
     

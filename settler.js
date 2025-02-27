@@ -11,6 +11,8 @@ class Settler {
     this.daysWithoutWater = 0;
     this.expedition = null;
     this.wounded = wounded; // Wounded status can only be healed with medicine
+    this.recovering = false; // Recovering from expedition
+    this.recoveryDaysLeft = 0; // Days left in recovery
   }
   
   // Check if settler can perform an activity
@@ -49,25 +51,42 @@ class Settler {
   updateWellbeing() {
     let changes = [];
     
-    // Health effects from hunger
-    if (this.daysWithoutFood >= 2) {
+    // Health effects from hunger - increased penalties
+    if (this.daysWithoutFood >= 1) {
       const oldHealth = this.health;
-      this.health = Math.max(0, this.health - 10);
+      const healthLoss = this.daysWithoutFood >= 3 ? 25 : 15; // Critical hunger after 3 days
+      this.health = Math.max(0, this.health - healthLoss);
       if (oldHealth !== this.health) {
-        changes.push(`health -10 (now ${this.health})`);
+        changes.push(`health -${healthLoss} (now ${this.health})`);
       }
     }
     
-    // Morale effects from thirst
+    // Morale effects from thirst - increased penalties
     if (this.daysWithoutWater >= 1) {
       const oldMorale = this.morale;
-      this.morale = Math.max(0, this.morale - 15);
+      const moraleLoss = this.daysWithoutWater >= 2 ? 30 : 20; // Critical thirst after 2 days
+      this.morale = Math.max(0, this.morale - moraleLoss);
       if (oldMorale !== this.morale) {
-        changes.push(`morale -15 (now ${this.morale})`);
+        changes.push(`morale -${moraleLoss} (now ${this.morale})`);
       }
     }
     
     return changes.length > 0 ? changes.join(", ") : null;
+  }
+  
+  // Update recovery status
+  updateRecovery() {
+    if (this.recovering) {
+      this.recoveryDaysLeft--;
+      
+      if (this.recoveryDaysLeft <= 0) {
+        this.recovering = false;
+        return `${this.name} has fully recovered from their expedition and is ready for new assignments.`;
+      } else {
+        return `${this.name} is still recovering from expedition (${this.recoveryDaysLeft} days left).`;
+      }
+    }
+    return null;
   }
   
   // Return a string representation of the settler
@@ -75,6 +94,9 @@ class Settler {
     let status = `${this.name} (${this.role}) - Health: ${this.health}, Morale: ${this.morale}`;
     if (this.wounded) {
       status += " [WOUNDED]";
+    }
+    if (this.recovering) {
+      status += ` [RECOVERING - ${this.recoveryDaysLeft} days]`;
     }
     if (this.busy) {
       status += ` - Busy until day ${this.busyUntil}`;

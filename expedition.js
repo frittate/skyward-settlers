@@ -4,20 +4,20 @@ class Expedition {
     this.settler = settler;
     this.radius = radius;
     
-    // Randomize duration based on radius if not specified
+    // Longer expedition durations for increased tension
     if (!duration) {
       switch(radius) {
         case 'small':
-          this.duration = Math.floor(Math.random() * 2) + 1; // 1-2 days
+          this.duration = Math.floor(Math.random() * 2) + 2; // 2-3 days
           break;
         case 'medium':
-          this.duration = Math.floor(Math.random() * 3) + 2; // 2-4 days
-          break;
-        case 'large':
           this.duration = Math.floor(Math.random() * 3) + 3; // 3-5 days
           break;
+        case 'large':
+          this.duration = Math.floor(Math.random() * 3) + 5; // 5-7 days
+          break;
         default:
-          this.duration = 1;
+          this.duration = 2;
       }
     } else {
       this.duration = duration;
@@ -56,6 +56,20 @@ class Expedition {
         this.supplyCost.water = 3;
         break;
     }
+    
+    // Recovery time needed after expedition
+    this.recoverTime = 0;
+    switch(radius) {
+      case 'small':
+        this.recoverTime = 1; // 1 day recovery
+        break;
+      case 'medium':
+        this.recoverTime = 2; // 2 days recovery
+        break;
+      case 'large':
+        this.recoverTime = 3; // 3 days recovery
+        break;
+    }
   }
   
   addResource(type, amount) {
@@ -66,18 +80,18 @@ class Expedition {
   
   // Generate base resources based on radius and duration
   generateBaseResources() {
-    // Base multipliers for different radii - increased for better rewards
+    // Improved multipliers for better rewards
     const multipliers = {
-      'small': 1.5,  // 1-3x return
-      'medium': 2,   // 2-4x return
-      'large': 3     // 3-6x return
+      'small': 2,     // 1.5-2.5x return
+      'medium': 3,    // 2-4x return
+      'large': 4.5    // 3-6x return
     };
     
     // Success chance varies by radius - higher failure rates
     const successChance = {
-      'small': 0.6,  // 40% chance of failure
-      'medium': 0.7, // 30% chance of failure
-      'large': 0.8   // 20% chance of failure
+      'small': 0.7,  // 30% chance of failure
+      'medium': 0.6, // 40% chance of failure
+      'large': 0.5   // 50% chance of failure
     };
     
     // Check if expedition is successful at finding resources
@@ -105,7 +119,7 @@ class Expedition {
     const adjustedAmount = Math.ceil(baseAmount * variabilityFactor);
     
     // Create "jackpot" chance for exceptional finds
-    const jackpot = Math.random() < 0.1; // 10% chance
+    const jackpot = Math.random() < 0.15; // 15% chance
     const jackpotMultiplier = jackpot ? 2 : 1;
     
     // Distribute resources - prioritize food and water
@@ -113,13 +127,19 @@ class Expedition {
     this.resources.water += Math.ceil(adjustedAmount * 0.4 * jackpotMultiplier);
     
     // Medicine only available in medium and large radius expeditions
-    if (this.radius !== 'small' && Math.random() < 0.3 * multipliers[this.radius]) {
+    if (this.radius !== 'small' && Math.random() < 0.4 * multipliers[this.radius]) {
       this.resources.meds += jackpot ? randomInt(1, 3) : 1;
     }
     
     // Add jackpot message if applicable
     if (jackpot) {
       this.jackpotFind = true;
+    }
+    
+    // Random delay chance (5%)
+    if (Math.random() < 0.05) {
+      this.duration += randomInt(1, 2);
+      this.delayReason = "encountered obstacles";
     }
   }
   
