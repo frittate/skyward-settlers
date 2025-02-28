@@ -1,6 +1,9 @@
+
+// game-engine.js - Skyward Settlers - Revised to use Settlement class
 const Settler = require('./settler');
 const Expedition = require('./expedition');
 const EventSystem = require('./event-system');
+const Settlement = require('./settlement');
 const { printPhaseHeader, formatResourceList, randomInt } = require('./utilities');
 
 // Main game class
@@ -9,11 +12,10 @@ class GameEngine {
     this.rl = rl;
     this.askQuestion = askQuestion;
     this.day = 1;
-    this.resources = {
-      food: 9,  // Increased starting resources
-      water: 9,
-      meds: 1
-    };
+    
+    // Create settlement
+    this.settlement = new Settlement();
+    
     this.settlers = [
       new Settler('Alex', 'Generalist', 100, 100),
       new Settler('Morgan', 'Generalist', 100, 100),
@@ -22,46 +24,6 @@ class GameEngine {
     this.expeditions = []; // Track ongoing expeditions
     this.eventSystem = new EventSystem();
     this.eventLog = []; // Store narrative events
-    
-    // Track resource stability
-    this.daysWithFood = 0;
-    this.daysWithWater = 0;
-    
-    // Settlement hope system
-    this.hope = 50; // Starting hope
-  }
-  
-  // Track resource stability for morale boosts
-  trackResourceStability() {
-    const allSettlersPresent = this.settlers.filter(s => !s.busy).length === this.settlers.length;
-    
-    // Check if we have enough food for everyone
-    if (this.resources.food >= this.settlers.length) {
-      this.daysWithFood++;
-      // Boost morale after 3 consecutive days with sufficient food
-      if (this.daysWithFood === 3 && allSettlersPresent) {
-        this.settlers.forEach(settler => {
-          settler.morale = Math.min(100, settler.morale + 5);
-        });
-        console.log("\nSTABILITY BONUS: 3 days with sufficient food has improved morale (+5).");
-      }
-    } else {
-      this.daysWithFood = 0;
-    }
-    
-    // Check if we have enough water for everyone
-    if (this.resources.water >= this.settlers.length) {
-      this.daysWithWater++;
-      // Boost morale after 3 consecutive days with sufficient water
-      if (this.daysWithWater === 3 && allSettlersPresent) {
-        this.settlers.forEach(settler => {
-          settler.morale = Math.min(100, settler.morale + 5);
-        });
-        console.log("\nSTABILITY BONUS: 3 days with sufficient water has improved morale (+5).");
-      }
-    } else {
-      this.daysWithWater = 0;
-    }
   }
   
   // Add a message to the event log
@@ -87,113 +49,50 @@ class GameEngine {
     });
 
     console.log('\nRESOURCES:');
-    console.log(`Food: ${this.resources.food}`);
-    console.log(`Water: ${this.resources.water}`);
-    console.log(`Meds: ${this.resources.meds}`);
+    console.log(`Food: ${this.settlement.resources.food}`);
+    console.log(`Water: ${this.settlement.resources.water}`);
+    console.log(`Meds: ${this.settlement.resources.meds}`);
     
     // Display Settlement Hope
-    console.log(`\nSETTLEMENT HOPE: ${this.hope}`);
+    console.log(`\nSETTLEMENT HOPE: ${this.settlement.hope}`);
     this.displayHopeEffect();
   }
   
   // Display the effect of current hope level
   displayHopeEffect() {
-    const mitigationPercent = Math.min(50, Math.floor(this.hope / 2));
-    let hopeDescription;
-    
-    if (this.hope >= 80) {
-      hopeDescription = "Your settlers are inspired and optimistic about their future.";
-    } else if (this.hope >= 60) {
-      hopeDescription = "Your settlement has a positive atmosphere.";
-    } else if (this.hope >= 40) {
-      hopeDescription = "The mood in the settlement is cautiously hopeful.";
-    } else if (this.hope >= 20) {
-      hopeDescription = "Doubt and concern are spreading in the settlement.";
-    } else {
-      hopeDescription = "The settlement feels bleak and desperate.";
-    }
-    
-    console.log(`- ${hopeDescription}`);
-    console.log(`- Reduces health/morale penalties by ${mitigationPercent}%`);
-    
-    // Display visitor chance if hope is high enough
-    if (this.hope >= 30) {
-      const visitorChance = Math.min(15, 5 + Math.floor(this.hope / 10));
-      console.log(`- ${visitorChance}% daily chance of attracting visitors`);
-    }
-  }
-  
-  // Update settlement hope based on events
-  updateHope(amount, reason) {
-    const oldHope = this.hope;
-    this.hope = Math.max(0, Math.min(100, this.hope + amount));
-    
-    if (oldHope !== this.hope) {
-      if (amount > 0) {
-        console.log(`\nHope increased by ${amount} (${reason}). Settlement hope is now ${this.hope}.`);
-      } else {
-        console.log(`\nHope decreased by ${Math.abs(amount)} (${reason}). Settlement hope is now ${this.hope}.`);
-      }
-    }
+    const hopeEffects = this.settlement.getHopeDescription();
+    hopeEffects.forEach(effect => {
+      console.log(`- ${effect}`);
+    });
   }
   
   // Check for random visitor appearance based on hope
-  checkForVisitors() {
-    if (this.hope < 30) return; // Not enough hope to attract visitors
+  async checkForVisitors() {
+    const visitorChance = this.settlement.getVisitorChance();
     
-    const visitorChance = Math.min(15, 5 + Math.floor(this.hope / 10));
-    
-    if (Math.random() * 100 < visitorChance) {
-      this.generateVisitor();
+    if (visitorChance > 0 && Math.random() * 100 < visitorChance) {
+      await this.handleVisitor();
     }
   }
   
-  // Generate a random visitor for the settlement
-  async generateVisitor() {
-    // Random visitor attributes
-    const health = randomInt(40, 80);
-    const morale = randomInt(50, 90);
-    
-    // Determine role with weighted probability
-    const roleRoll = Math.random();
-    let role;
-    
-    if (roleRoll < 0.60) {
-      role = 'Generalist';
-    } else if (roleRoll < 0.90) {
-      role = 'Mechanic';
-    } else {
-      role = 'Medic';
-    }
-    
-    // Generate a random name
-    const survivorNames = [
-      'Riley', 'Jordan', 'Taylor', 'Casey', 'Quinn', 'Avery', 
-      'Blake', 'Drew', 'Jamie', 'Morgan', 'Rowan', 'Reese',
-      'Skyler', 'Dakota', 'Kendall', 'Parker', 'Hayden', 'Finley'
-    ];
-    const name = survivorNames[Math.floor(Math.random() * survivorNames.length)];
-    
-    // Random gift (small amount of resources they bring)
-    const gift = {
-      food: Math.random() < 0.7 ? randomInt(1, 2) : 0,
-      water: Math.random() < 0.7 ? randomInt(1, 2) : 0,
-      meds: role === 'Medic' ? 1 : (Math.random() < 0.3 ? 1 : 0)  // Medics always bring 1 medicine
-    };
+  // Generate and handle a random visitor for the settlement
+  async handleVisitor() {
+    // Generate visitor
+    const visitor = this.settlement.generateVisitor();
     
     console.log("\n=== VISITOR ARRIVED ===");
-    console.log(`${name}, a ${role}, was attracted by your settlement's reputation!`);
-    console.log(`Health: ${health}, Morale: ${morale}`);
+    console.log(`${visitor.name}, a ${visitor.role}, was attracted by your settlement's reputation!`);
+    console.log(`Health: ${visitor.health}, Morale: ${visitor.morale}`);
     
     // Show what resources the visitor brings
-    const giftString = formatResourceList(gift);
+    const giftString = formatResourceList(visitor.gift);
     if (giftString) {
       console.log(`They're offering to share their remaining supplies: ${giftString}`);
     }
     
-    if (role === 'Medic') {
+    if (visitor.role === 'Medic') {
       console.log("A medic would allow you to heal wounded settlers and improve health!");
-    } else if (role === 'Mechanic') {
+    } else if (visitor.role === 'Mechanic') {
       console.log("A mechanic would allow you to build structures once you have materials!");
     }
     
@@ -202,49 +101,55 @@ class GameEngine {
     
     if (acceptVisitor.toLowerCase() === 'y') {
       // Add the visitor to the settlement
-      const newSettler = new Settler(name, role, health, morale);
+      const newSettler = new Settler(visitor.name, visitor.role, visitor.health, visitor.morale);
       this.settlers.push(newSettler);
       
       // Add their gift to resources
-      for (const [resource, amount] of Object.entries(gift)) {
-        this.resources[resource] += amount;
+      for (const [resource, amount] of Object.entries(visitor.gift)) {
+        if (amount > 0) {
+          this.settlement.addResource(resource, amount);
+        }
       }
       
-      this.logEvent(`${name} (${role}) has joined the settlement!`);
+      this.logEvent(`${visitor.name} (${visitor.role}) has joined the settlement!`);
       if (giftString) {
-        this.logEvent(`${name} contributed ${giftString} to the community supplies.`);
+        this.logEvent(`${visitor.name} contributed ${giftString} to the community supplies.`);
       }
       
       // Special message for medic
-      if (role === 'Medic') {
+      if (visitor.role === 'Medic') {
         this.logEvent("You now have a medic who can heal wounded settlers!");
       }
       
       // Hope boost for new settler
-      this.updateHope(15, "new settler joined");
+      const hopeMessage = this.settlement.updateHope(15, "new settler joined");
+      if (hopeMessage) this.logEvent(hopeMessage);
     } else {
-      this.logEvent(`You decided not to accept ${name} into the settlement.`);
+      this.logEvent(`You decided not to accept ${visitor.name} into the settlement.`);
       // Small hope penalty for turning someone away
-      this.updateHope(-5, "turned away visitor");
+      const hopeMessage = this.settlement.updateHope(-5, "turned away visitor");
+      if (hopeMessage) this.logEvent(hopeMessage);
     }
-    
-    // Ensure the game continues after visitor decision
-    await this.askQuestion("\nPress Enter to continue...");
   }
+  
   async morningPhase() {
     printPhaseHeader("MORNING PHASE: RETURN & REPORT");
     console.log(`Day ${this.day} has begun.`);
     
-    // Add daily hope for survival
+    // Add daily hope for survival - REDUCED from 5 to 3
     if (this.day > 1) {
-      this.updateHope(5, "another day survived");
+      const hopeMessage = this.settlement.updateHope(3, "another day survived");
+      if (hopeMessage) console.log("\n" + hopeMessage);
     }
     
     // Check for random visitors based on hope
-    this.checkForVisitors();
+    await this.checkForVisitors();
     
     // Track consecutive days with sufficient resources
-    this.trackResourceStability();
+    const stabilityMessage = this.settlement.trackResourceStability(this.settlers);
+    if (stabilityMessage) {
+      console.log("\n" + stabilityMessage);
+    }
     
     // Update recovery status for all settlers
     this.settlers.forEach(settler => {
@@ -282,7 +187,9 @@ class GameEngine {
         
         // Add resources to settlement
         for (const [resource, amount] of Object.entries(expedition.resources)) {
-          this.resources[resource] += amount;
+          if (amount > 0) {
+            this.settlement.addResource(resource, amount);
+          }
         }
         
         // Create resource report
@@ -295,15 +202,18 @@ class GameEngine {
           let message = `- ${settler.name} has returned from the ${expedition.radius} radius with ${resourceString || "no resources"}. (+${moraleBoost} morale from successful expedition)`;
           if (expedition.jackpotFind) {
             message += " They found an exceptional cache of supplies!";
-            this.updateHope(15, "exceptional resource find");
+            const hopeMessage = this.settlement.updateHope(15, "exceptional resource find");
+            if (hopeMessage) this.logEvent(hopeMessage);
           } else {
-            this.updateHope(10, "successful expedition");
+            const hopeMessage = this.settlement.updateHope(10, "successful expedition");
+            if (hopeMessage) this.logEvent(hopeMessage);
           }
           message += ` They need ${expedition.recoverTime} days to recover.`;
           this.logEvent(message);
         } else {
           this.logEvent(`- ${settler.name} has returned from the ${expedition.radius} radius with no resources. The expedition was a failure. They need ${expedition.recoverTime} days to recover.`);
-          this.updateHope(-5, "failed expedition");
+          const hopeMessage = this.settlement.updateHope(-5, "failed expedition");
+          if (hopeMessage) this.logEvent(hopeMessage);
         }
         
         // Check if they found a survivor
@@ -372,7 +282,9 @@ class GameEngine {
       
       // Add their gift to resources
       for (const [resource, amount] of Object.entries(survivor.gift)) {
-        this.resources[resource] += amount;
+        if (amount > 0) {
+          this.settlement.addResource(resource, amount);
+        }
       }
       
       this.logEvent(`${survivor.name} (${survivor.role}) has joined the settlement!`);
@@ -386,12 +298,15 @@ class GameEngine {
       }
       
       // Hope boost for new survivor
-      this.updateHope(20, "rescued survivor");
+      const hopeMessage = this.settlement.updateHope(20, "rescued survivor");
+      if (hopeMessage) this.logEvent(hopeMessage);
     } else {
       this.logEvent(`You decided not to accept ${survivor.name} into the settlement.`);
       // Small hope penalty for turning someone away
-      this.updateHope(-5, "turned away survivor");
+      const hopeMessage = this.settlement.updateHope(-5, "turned away survivor");
+      if (hopeMessage) this.logEvent(hopeMessage);
     }
+return;
   }
   
   // PHASE 2: MIDDAY - Distribute resources to settlers
@@ -402,7 +317,7 @@ class GameEngine {
     const presentSettlers = this.settlers.filter(settler => !settler.busy);
     const presentCount = presentSettlers.length;
     
-    console.log(`You have ${this.resources.food} food and ${this.resources.water} water.`);
+    console.log(`You have ${this.settlement.resources.food} food and ${this.settlement.resources.water} water.`);
     console.log(`${presentCount} settlers are present and need resources.`);
     
     const autoDistribute = await this.askQuestion("\nDistribute resources automatically? (y/n): ");
@@ -418,7 +333,7 @@ class GameEngine {
     // Update health and morale based on consumption
     console.log("\nHEALTH & MORALE UPDATES:");
     presentSettlers.forEach(settler => {
-      const changes = settler.updateWellbeing(this.hope);
+      const changes = settler.updateWellbeing(this.settlement.hope);
       if (changes) {
         console.log(`- ${settler.name}: ${changes}`);
       } else {
@@ -440,20 +355,24 @@ class GameEngine {
     const presentCount = presentSettlers.length;
     console.log("\nAUTOMATIC DISTRIBUTION:");
     
+    let foodShortage = false;
+    let waterShortage = false;
+    
     // Distribute food
-    if (this.resources.food >= presentCount) {
-      this.resources.food -= presentCount;
+    if (this.settlement.resources.food >= presentCount) {
+      this.settlement.removeResource('food', presentCount);
       console.log(`- Each settler received 1 food (${presentCount} total).`);
       presentSettlers.forEach(settler => {
         settler.daysWithoutFood = 0;
       });
     } else {
-      console.log(`- Not enough food for everyone! Only ${this.resources.food}/${presentCount} settlers will eat.`);
+      console.log(`- Not enough food for everyone! Only ${this.settlement.resources.food}/${presentCount} settlers will eat.`);
+      foodShortage = true;
       
       // Distribute available food (prioritize low health)
       let sortedSettlers = [...presentSettlers].sort((a, b) => a.health - b.health);
       for (let i = 0; i < sortedSettlers.length; i++) {
-        if (i < this.resources.food) {
+        if (i < this.settlement.resources.food) {
           sortedSettlers[i].daysWithoutFood = 0;
           console.log(`  - ${sortedSettlers[i].name} received food (Health: ${sortedSettlers[i].health}).`);
         } else {
@@ -461,23 +380,24 @@ class GameEngine {
           console.log(`  - ${sortedSettlers[i].name} went hungry (Health: ${sortedSettlers[i].health}).`);
         }
       }
-      this.resources.food = 0;
+      this.settlement.resources.food = 0;
     }
     
     // Distribute water
-    if (this.resources.water >= presentCount) {
-      this.resources.water -= presentCount;
+    if (this.settlement.resources.water >= presentCount) {
+      this.settlement.removeResource('water', presentCount);
       console.log(`- Each settler received 1 water (${presentCount} total).`);
       presentSettlers.forEach(settler => {
         settler.daysWithoutWater = 0;
       });
     } else {
-      console.log(`- Not enough water for everyone! Only ${this.resources.water}/${presentCount} settlers will drink.`);
+      console.log(`- Not enough water for everyone! Only ${this.settlement.resources.water}/${presentCount} settlers will drink.`);
+      waterShortage = true;
       
       // Distribute available water (prioritize low morale)
       let sortedSettlers = [...presentSettlers].sort((a, b) => a.morale - b.morale);
       for (let i = 0; i < sortedSettlers.length; i++) {
-        if (i < this.resources.water) {
+        if (i < this.settlement.resources.water) {
           sortedSettlers[i].daysWithoutWater = 0;
           console.log(`  - ${sortedSettlers[i].name} received water (Morale: ${sortedSettlers[i].morale}).`);
         } else {
@@ -485,7 +405,18 @@ class GameEngine {
           console.log(`  - ${sortedSettlers[i].name} went thirsty (Morale: ${sortedSettlers[i].morale}).`);
         }
       }
-      this.resources.water = 0;
+      this.settlement.resources.water = 0;
+    }
+    
+    // Apply hope penalties for resource shortages
+    if (foodShortage) {
+      const hopeMessage = this.settlement.updateHope(-3, "food shortage");
+      if (hopeMessage) console.log(hopeMessage);
+    }
+    
+    if (waterShortage) {
+      const hopeMessage = this.settlement.updateHope(-3, "water shortage");
+      if (hopeMessage) console.log(hopeMessage);
     }
   }
   
@@ -493,8 +424,10 @@ class GameEngine {
   async manualDistributeResources(presentSettlers) {
     console.log("\nMANUAL DISTRIBUTION:");
     
-    let remainingFood = this.resources.food;
-    let remainingWater = this.resources.water;
+    let remainingFood = this.settlement.resources.food;
+    let remainingWater = this.settlement.resources.water;
+    let foodShortage = false;
+    let waterShortage = false;
     
     // Distribute to each present settler
     for (const settler of presentSettlers) {
@@ -509,11 +442,13 @@ class GameEngine {
           console.log(`- ${settler.name} received food.`);
         } else {
           settler.daysWithoutFood++;
+          foodShortage = true;
           console.log(`- ${settler.name} went hungry.`);
         }
       } else {
         console.log("- No food remaining to distribute.");
         settler.daysWithoutFood++;
+        foodShortage = true;
       }
       
       // Water distribution
@@ -525,17 +460,30 @@ class GameEngine {
           console.log(`- ${settler.name} received water.`);
         } else {
           settler.daysWithoutWater++;
+          waterShortage = true;
           console.log(`- ${settler.name} went thirsty.`);
         }
       } else {
         console.log("- No water remaining to distribute.");
         settler.daysWithoutWater++;
+        waterShortage = true;
       }
     }
     
     // Update remaining resources
-    this.resources.food = remainingFood;
-    this.resources.water = remainingWater;
+    this.settlement.resources.food = remainingFood;
+    this.settlement.resources.water = remainingWater;
+    
+    // Apply hope penalties for resource shortages
+    if (foodShortage) {
+      const hopeMessage = this.settlement.updateHope(-3, "food shortage");
+      if (hopeMessage) console.log(hopeMessage);
+    }
+    
+    if (waterShortage) {
+      const hopeMessage = this.settlement.updateHope(-3, "water shortage");
+      if (hopeMessage) console.log(hopeMessage);
+    }
   }
   
   // Check for critical settler status (death, abandonment)
@@ -548,7 +496,8 @@ class GameEngine {
         this.logEvent(`\n! ${settler.name} has died due to poor health!`);
         this.settlers.splice(i, 1);
         // Major hope loss when settler dies
-        this.updateHope(-20, "settler death");
+        const hopeMessage = this.settlement.updateHope(-20, "settler death");
+        if (hopeMessage) this.logEvent(hopeMessage);
         continue;
       }
       
@@ -557,13 +506,15 @@ class GameEngine {
         this.logEvent(`\n! ${settler.name} has left the settlement due to low morale!`);
         this.settlers.splice(i, 1);
         // Major hope loss when settler leaves
-        this.updateHope(-15, "settler abandonment");
+        const hopeMessage = this.settlement.updateHope(-15, "settler abandonment");
+        if (hopeMessage) this.logEvent(hopeMessage);
         continue;
       }
     }
   }
   
   // PHASE 3: AFTERNOON - Assign tasks to settlers
+  // Continuation of afternoonPhase
   async afternoonPhase() {
     printPhaseHeader("AFTERNOON PHASE: TASK ASSIGNMENT");
     
@@ -601,7 +552,7 @@ class GameEngine {
       // Only show foraging option if we haven't reached the limit
       if (expeditionCount < availableForExpedition) {
         // Check if emergency foraging is needed
-        if (this.resources.food === 0 && this.resources.water === 0) {
+        if (this.settlement.resources.food === 0 && this.settlement.resources.water === 0) {
           console.log("1. Emergency foraging (desperate measure, no supplies needed)");
         } else {
           console.log("1. Send foraging");
@@ -630,7 +581,7 @@ class GameEngine {
           console.log(restResult);
         } else if (settler.health > 20) {
           // Check if this is an emergency foraging situation
-          const isEmergency = this.resources.food === 0 && this.resources.water === 0;
+          const isEmergency = this.settlement.resources.food === 0 && this.settlement.resources.water === 0;
           
           if (isEmergency) {
             // Emergency foraging is always a 1-day small radius expedition with no supply cost
@@ -694,12 +645,12 @@ class GameEngine {
             const expedition = new Expedition(settler, radius);
             
             // Check if we have enough supplies for the expedition
-            if (this.resources.food >= expedition.supplyCost.food && 
-                this.resources.water >= expedition.supplyCost.water) {
+            if (this.settlement.resources.food >= expedition.supplyCost.food && 
+                this.settlement.resources.water >= expedition.supplyCost.water) {
                 
               // Deduct the supplies
-              this.resources.food -= expedition.supplyCost.food;
-              this.resources.water -= expedition.supplyCost.water;
+              this.settlement.removeResource('food', expedition.supplyCost.food);
+              this.settlement.removeResource('water', expedition.supplyCost.water);
               
               const returnDay = this.day + expedition.duration;
               expedition.returnDay = returnDay;
@@ -732,7 +683,7 @@ class GameEngine {
           console.log(restResult);
         }
       } else if (taskChoice === '2') { // Healing
-        if (hasMedic && settler.role === 'Medic' && this.resources.meds > 0) {
+        if (hasMedic && settler.role === 'Medic' && this.settlement.resources.meds > 0) {
           console.log("Who do you want to heal?");
           this.settlers.forEach((s, idx) => {
             console.log(`${idx + 1}. ${s.name} - Health: ${s.health}${s.wounded ? ' [WOUNDED]' : ''}`);
@@ -759,17 +710,6 @@ class GameEngine {
           const restResult = settler.rest();
           console.log(restResult);
         }
-      } else if (taskChoice === '4') { // Share Stories
-        console.log(`${settler.name} shares stories and memories to build community spirit.`);
-        
-        // Boost settler's morale
-        const oldMorale = settler.morale;
-        settler.morale = Math.min(100, settler.morale + 10);
-        console.log(`${settler.name}'s morale improved from ${oldMorale} to ${settler.morale}.`);
-        
-        // Boost settlement hope
-        const hopeBoost = randomInt(5, 10);
-        this.updateHope(hopeBoost, "shared stories and memories");
       } else { // Rest or default
         const restResult = settler.rest();
         console.log(restResult);
@@ -786,8 +726,8 @@ class GameEngine {
     // Find a medic
     const medic = this.settlers.find(s => s.role === 'Medic' && !s.busy);
     
-    if (medic && this.resources.meds > 0) {
-      this.resources.meds--;
+    if (medic && this.settlement.resources.meds > 0) {
+      this.settlement.removeResource('meds', 1);
       const previousHealth = target.health;
       target.health = Math.min(100, target.health + 30);
       
@@ -819,9 +759,9 @@ class GameEngine {
     // Summarize the day's events
     console.log("\nSETTLEMENT STATUS:");
     console.log(`- Settlers: ${this.settlers.length}`);
-    console.log(`- Food remaining: ${this.resources.food}`);
-    console.log(`- Water remaining: ${this.resources.water}`);
-    console.log(`- Medicine remaining: ${this.resources.meds}`);
+    console.log(`- Food remaining: ${this.settlement.resources.food}`);
+    console.log(`- Water remaining: ${this.settlement.resources.water}`);
+    console.log(`- Medicine remaining: ${this.settlement.resources.meds}`);
     console.log(`- Active expeditions: ${this.expeditions.length}`);
     
     // Preview tomorrow's events
@@ -840,11 +780,11 @@ class GameEngine {
     console.log(`- ${presentTomorrow} settlers will need food and water tomorrow.`);
     
     // Resource warning
-    if (this.resources.food < presentTomorrow) {
-      console.log(`! WARNING: Not enough food for everyone tomorrow (${this.resources.food}/${presentTomorrow}).`);
+    if (this.settlement.resources.food < presentTomorrow) {
+      console.log(`! WARNING: Not enough food for everyone tomorrow (${this.settlement.resources.food}/${presentTomorrow}).`);
     }
-    if (this.resources.water < presentTomorrow) {
-      console.log(`! WARNING: Not enough water for everyone tomorrow (${this.resources.water}/${presentTomorrow}).`);
+    if (this.settlement.resources.water < presentTomorrow) {
+      console.log(`! WARNING: Not enough water for everyone tomorrow (${this.settlement.resources.water}/${presentTomorrow}).`);
     }
     
     // Advance day

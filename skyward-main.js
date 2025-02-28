@@ -3,6 +3,7 @@ const readline = require('readline');
 const Settler = require('./settler');
 const Expedition = require('./expedition');
 const EventSystem = require('./event-system');
+const Settlement = require('./settlement');
 const GameEngine = require('./game-engine');
 const { printPhaseHeader } = require('./utilities');
 
