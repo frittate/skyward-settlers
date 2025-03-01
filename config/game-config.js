@@ -40,7 +40,7 @@ module.exports = {
     
     // Success chance varies by radius
     successChance: {
-      'small': 0.7,   // 30% chance of failure
+      'small': 0.8,   // 20% chance of failure
       'medium': 0.6,  // 40% chance of failure
       'large': 0.5,   // 50% chance of failure
       'emergency': 0.3 // 70% chance of failure
@@ -56,7 +56,7 @@ module.exports = {
     
     // Multipliers for resource returns
     resourceMultiplier: {
-      'small': 2,     // 1.5-2.5x return
+      'small': 2.5,     // 1.5-2.5x return
       'medium': 3,    // 2-4x return 
       'large': 4.5    // 3-6x return
     },
@@ -72,8 +72,8 @@ module.exports = {
   hope: {
     // Events that affect settlement hope
     hopeChange: {
-      'successfulExpedition': 10,
-      'exceptionalFind': 15,
+      'successfulExpedition': 8,
+      'exceptionalFind': 10,
       'failedExpedition': -5,
       'newSettler': 15,
       'rescuedSurvivor': 20,
