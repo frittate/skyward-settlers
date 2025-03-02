@@ -13,7 +13,8 @@ class Expedition {
     this.resources = {
       food: 0,
       water: 0,
-      meds: 0
+      meds: 0,
+      materials: 0  // Added materials as a possible resource
     };
     this.events = [];
     this.returnDay = 0; // Will be set by the game
@@ -94,6 +95,16 @@ class Expedition {
       this.resources.meds += jackpot ? randomInt(1, 3) : 1;
     }
 
+    // Materials can be found in medium and large radius expeditions
+    if (this.radius === 'medium' || this.radius === 'large') {
+      // Materials are less common than other resources
+      const materialsChance = this.radius === 'large' ? 0.4 : 0.2;
+      if (Math.random() < materialsChance) {
+        const baseAmount = this.radius === 'large' ? randomInt(1, 3) : 1;
+        this.resources.materials += jackpot ? baseAmount * 2 : baseAmount;
+      }
+    }
+
     // Record jackpot
     if (jackpot) {
       this.jackpotFind = true;
@@ -159,6 +170,10 @@ class Expedition {
     // If found medicine
     else if (this.resources.meds > 0) {
       report = `${this.settler.name} has found medical supplies`;
+    }
+    // If found materials
+    else if (this.resources.materials > 0) {
+      report = `${this.settler.name} has found useful building materials`;
     }
     // If found plenty of water
     else if (this.resources.water >= 3) {
@@ -252,7 +267,8 @@ class Expedition {
     const gift = {
       food: Math.random() < 0.5 ? randomInt(1, 2) : 0,
       water: Math.random() < 0.5 ? randomInt(1, 2) : 0,
-      meds: role === 'Medic' ? 1 : (Math.random() < 0.2 ? 1 : 0)  // Medics always bring 1 medicine
+      meds: role === 'Medic' ? 1 : (Math.random() < 0.2 ? 1 : 0),  // Medics always bring 1 medicine
+      materials: role === 'Mechanic' ? randomInt(1, 3) : (Math.random() < 0.2 ? 1 : 0) // Mechanics bring materials
     };
 
     this.survivor = { name, role, health, morale, gift };

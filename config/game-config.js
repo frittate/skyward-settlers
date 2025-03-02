@@ -99,25 +99,25 @@ module.exports = {
       {
         name: "Basic Tents", 
         protection: 0.75,
-        materialCost: 15,
-        buildTime: 3,
-        hopeBonus: 5
+        materialCost: 10,  // Reduced from 15 to 10
+        buildTime: 2,      // Reduced from 3 to 2
+        hopeBonus: 10      // Increased from 5 to 10
       },
       // Tier 2: Reinforced Shelters
       {
         name: "Reinforced Shelters",
         protection: 0.9,
-        materialCost: 30,
-        buildTime: 5,
-        hopeBonus: 10
+        materialCost: 25,  // Reduced from 30 to 25
+        buildTime: 4,      // Reduced from 5 to 4
+        hopeBonus: 15      // Increased from 10 to 15
       },
       // Tier 3: Permanent Settlement
       {
         name: "Permanent Settlement",
         protection: 1.0,
-        materialCost: 50,
-        buildTime: 7,
-        hopeBonus: 15
+        materialCost: 40,  // Reduced from 50 to 40
+        buildTime: 6,      // Reduced from 7 to 6
+        hopeBonus: 20      // Increased from 15 to 20
       }
     ]
   }

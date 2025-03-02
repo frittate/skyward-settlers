@@ -51,6 +51,24 @@ const positiveEvents = [
       expedition.addResource('water', waterBonus);
       return `Received ${foodBonus} food and ${waterBonus} water from a friendly survivor!`;
     }
+  },
+  {
+    name: "Abandoned Construction",
+    description: "They find an abandoned construction site with usable materials.",
+    effect: (settler, expedition) => {
+      const materialsBonus = randomInt(1, 3);
+      expedition.addResource('materials', materialsBonus);
+      return `Salvaged ${materialsBonus} building materials!`;
+    }
+  },
+  {
+    name: "Hardware Store",
+    description: "They discover a small hardware store that hasn't been completely looted.",
+    effect: (settler, expedition) => {
+      const materialsBonus = randomInt(2, 4);
+      expedition.addResource('materials', materialsBonus);
+      return `Found ${materialsBonus} building materials in the hardware store!`;
+    }
   }
 ];
 
