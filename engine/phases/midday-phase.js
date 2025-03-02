@@ -10,12 +10,22 @@ class MiddayPhase {
   async execute() {
     printPhaseHeader("MIDDAY PHASE: RESOURCE DISTRIBUTION");
 
-    // Get present (non-busy) settlers
-    const presentSettlers = this.game.settlers.filter(settler => !settler.busy);
+    // Get present settlers - Those who are not on expedition
+    // Building settlers are still present and need resources
+    const presentSettlers = this.game.settlers.filter(settler => 
+      !settler.busy || (settler.busy && (settler.busyUntil === "shelter" || settler.busyUntil === "infrastructure"))
+    );
+    
     const presentCount = presentSettlers.length;
 
     console.log(`You have ${this.game.settlement.resources.food} food and ${this.game.settlement.resources.water} water.`);
     console.log(`${presentCount} settlers are present and need resources.`);
+
+    if (presentCount === 0) {
+      console.log("\nAll settlers are away on expeditions. No resources will be consumed today.");
+      await this.game.askQuestion("\nPress Enter to continue to Task Assignment...");
+      return;
+    }
 
     const autoDistribute = await this.game.askQuestion("\nDistribute resources automatically? (y/n): ");
 
@@ -120,7 +130,17 @@ class MiddayPhase {
 
     // Distribute to each present settler
     for (const settler of presentSettlers) {
-      console.log(`\n${settler.name} - Health: ${settler.health}, Morale: ${settler.morale}`);
+      // For building settlers, show their current task
+      let settlerStatus = "";
+      if (settler.busy) {
+        if (settler.busyUntil === "shelter") {
+          settlerStatus = " [Building Shelter]";
+        } else if (settler.busyUntil === "infrastructure") {
+          settlerStatus = " [Building Infrastructure]";
+        }
+      }
+      
+      console.log(`\n${settler.name} - Health: ${settler.health}, Morale: ${settler.morale}${settlerStatus}`);
 
       // Food distribution
       if (remainingFood > 0) {

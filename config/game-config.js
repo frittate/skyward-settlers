@@ -8,7 +8,7 @@ module.exports = {
     food: 9,
     water: 9,
     meds: 1,
-    materials: 0,
+    materials: 15,
     hope: 50
   },
   

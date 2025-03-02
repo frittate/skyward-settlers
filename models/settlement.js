@@ -2,6 +2,7 @@
 const { formatResourceList, randomInt } = require('../utils/utils');
 const gameConfig = require('../config/game-config');
 const resourcesConfig = require('../config/resources-config');
+const SettlementInfrastructure = require('./settlement-infrastructure');
 
 class Settlement {
   constructor() {
@@ -11,6 +12,8 @@ class Settlement {
       meds: gameConfig.starting.meds,
       materials: gameConfig.starting.materials
     };
+
+    this.infrastructure = new SettlementInfrastructure();
 
     // Track resource stability
     this.daysWithFood = 0;
@@ -29,6 +32,62 @@ class Settlement {
     this.upgradeInProgress = false;
     this.upgradeTimeLeft = 0;
     this.assignedMechanic = null;
+  }
+
+  getAvailableUpgrades() {
+    return this.infrastructure.getAvailableUpgrades();
+  }
+
+  startInfrastructureUpgrade(upgradeType, mechanics) {
+    // Check if we have enough materials
+    const availableUpgrades = this.infrastructure.getAvailableUpgrades();
+    const upgrade = availableUpgrades.find(u => u.type === upgradeType);
+    
+    if (!upgrade) {
+      return { 
+        success: false, 
+        message: `${upgradeType} is not available for construction.` 
+      };
+    }
+    
+    // Check if we have enough materials
+    if (this.resources.materials < upgrade.materialCost) {
+      return { 
+        success: false, 
+        message: `Not enough materials. Need ${upgrade.materialCost}, have ${this.resources.materials}.` 
+      };
+    }
+    
+    // Consume materials
+    this.resources.materials -= upgrade.materialCost;
+    
+    // Start the upgrade
+    const result = this.infrastructure.startUpgrade(upgradeType, mechanics);
+    
+    return result;
+  }
+
+  processDailyProduction() {
+    // Generate resources from infrastructure
+    const production = this.infrastructure.generateDailyResources();
+    
+    // Add resources to settlement
+    for (const [resource, amount] of Object.entries(production)) {
+      if (amount > 0) {
+        this.addResource(resource, amount);
+      }
+    }
+    
+    return production;
+  }
+
+  processInfrastructureUpgrades() {
+    const result = this.infrastructure.processDailyUpgrades();
+    
+    // Free up mechanics from completed projects
+    const completedProjects = result.completed;
+    
+    return result;
   }
 
   // Add resources to the settlement
@@ -414,6 +473,66 @@ class Settlement {
     };
 
     return { name, role, health, morale, gift };
+  }
+
+  displayInfrastructureStatus() {
+    const infrastructureSummary = this.infrastructure.getInfrastructureSummary();
+    const upgradesInProgress = this.infrastructure.getUpgradesInProgressSummary();
+    const statusLines = [];
+    
+    if (infrastructureSummary.length === 0 && upgradesInProgress.length === 0) {
+      return ["No infrastructure has been built yet."];
+    }
+    
+    // Display built infrastructure
+    if (infrastructureSummary.length > 0) {
+      statusLines.push("Built Infrastructure:");
+      
+      // Group by category
+      const foodInfra = infrastructureSummary.filter(i => i.category === 'food');
+      const waterInfra = infrastructureSummary.filter(i => i.category === 'water');
+      
+      if (foodInfra.length > 0) {
+        statusLines.push("- Food Production:");
+        for (const item of foodInfra) {
+          statusLines.push(`  ${item.icon} ${item.levelName}${item.count > 1 ? ` (x${item.count})` : ''}: ${item.production.min}-${item.production.max} food/day`);
+        }
+      }
+      
+      if (waterInfra.length > 0) {
+        statusLines.push("- Water Collection:");
+        for (const item of waterInfra) {
+          statusLines.push(`  ${item.icon} ${item.levelName}${item.count > 1 ? ` (x${item.count})` : ''}: ${item.production.min}-${item.production.max} water/day`);
+        }
+      }
+      
+      // Show daily production totals
+      const production = this.infrastructure.dailyProduction;
+      if (production.food > 0 || production.water > 0) {
+        statusLines.push("\nDaily Production:");
+        if (production.food > 0) {
+          statusLines.push(`- Food: ~${production.food} per day`);
+        }
+        if (production.water > 0) {
+          statusLines.push(`- Water: ~${production.water} per day`);
+        }
+      }
+    }
+    
+    // Display upgrades in progress
+    if (upgradesInProgress.length > 0) {
+      if (statusLines.length > 0) {
+        statusLines.push(""); // Add space
+      }
+      statusLines.push("Upgrades In Progress:");
+      for (const upgrade of upgradesInProgress) {
+        const progress = Math.round(((upgrade.originalTime - upgrade.timeLeft) / upgrade.originalTime) * 100);
+        statusLines.push(`- ${upgrade.name}: ${upgrade.timeLeft} days remaining (${progress}% complete)`);
+        statusLines.push(`  Built by: ${upgrade.mechanics.join(', ')}`);
+      }
+    }
+    
+    return statusLines;
   }
 
   // Format for display

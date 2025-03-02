@@ -56,8 +56,16 @@ class GameEngine {
     console.log('\nSETTLERS:');
     this.settlers.forEach((settler, index) => {
       if (settler.busy) {
-        // Don't show health/morale for settlers on expedition
-        console.log(`${index + 1}. ${settler.name} (${settler.role}) - On expedition`);
+        let busyStatus;
+        // Check what type of busy this is
+        if (settler.busyUntil === "shelter") {
+          busyStatus = "Building shelter";
+        } else if (settler.busyUntil === "infrastructure") {
+          busyStatus = "Building infrastructure";
+        } else {
+          busyStatus = "On expedition";
+        }
+        console.log(`${index + 1}. ${settler.name} (${settler.role}) - ${busyStatus}`);
       } else {
         console.log(`${index + 1}. ${settler.toString()}`);
       }
@@ -72,13 +80,12 @@ class GameEngine {
     // Display Settlement Hope
     console.log(`\nSETTLEMENT HOPE: ${this.settlement.hope}`);
     this.displayHopeEffect();
-    
-    // Display Shelter
-    const shelterStatus = this.settlement.getShelterStatus();
-    console.log(`\nSHELTER: ${shelterStatus.name} (${shelterStatus.protection}% protection)`);
-    if (shelterStatus.upgradeInProgress) {
-      console.log(`Upgrade in progress: ${shelterStatus.upgradeTimeLeft} days remaining`);
-    }
+
+    // Display Settlement Infrastructure
+    console.log('\nINFRASTRUCTURE:');
+    const infrastructureStatus = this.settlement.displayInfrastructureStatus();
+    infrastructureStatus.forEach(line => console.log(line));
+
   }
 
   // Display the effect of current hope level
