@@ -64,10 +64,24 @@ class AfternoonPhase {
       } else {
         console.log("2. [UNAVAILABLE] Heal (requires medicine and a medic)");
       }
+      
+      // Only show shelter building option if this settler is a mechanic and there's a possible upgrade
+      const canUpgrade = settler.role === 'Mechanic' && 
+                         settler.health > 50 && 
+                         this.game.settlement.canUpgradeShelter().possible;
+      if (canUpgrade) {
+        console.log("3. Build shelter (requires mechanic and materials)");
+      } else if (settler.role === 'Mechanic') {
+        // Show why shelter building is unavailable
+        const upgradeStatus = this.game.settlement.canUpgradeShelter();
+        console.log(`3. [UNAVAILABLE] Build shelter (${upgradeStatus.reason})`);
+      } else {
+        console.log("3. [UNAVAILABLE] Build shelter (requires mechanic)");
+      }
 
-      console.log("3. Rest");
+      console.log("4. Rest");
 
-      const taskChoice = await this.game.askQuestion("Choose task (1-3): ");
+      const taskChoice = await this.game.askQuestion("Choose task (1-4): ");
 
       if (taskChoice === '1') { 
         // Foraging - check availability and health
@@ -79,6 +93,9 @@ class AfternoonPhase {
       } else if (taskChoice === '2') { 
         // Healing
         await this.handleHealingAssignment(settler, hasMedic);
+      } else if (taskChoice === '3') {
+        // Shelter building
+        await this.handleShelterAssignment(settler, canUpgrade);
       } else { 
         // Rest or default
         const restResult = settler.rest();
@@ -87,6 +104,59 @@ class AfternoonPhase {
     }
 
     await this.game.askQuestion("\nPress Enter to continue to Evening Summary...");
+  }
+
+  // Handle shelter building assignment
+  async handleShelterAssignment(settler, canUpgrade) {
+    if (!canUpgrade) {
+      if (settler.role !== 'Mechanic') {
+        console.log(`Only a mechanic can build shelter, and ${settler.name} is a ${settler.role}!`);
+      } else if (settler.health <= 50) {
+        console.log(`${settler.name} needs better health to work on shelter construction.`);
+      } else {
+        const upgradeStatus = this.game.settlement.canUpgradeShelter();
+        console.log(`Cannot build shelter: ${upgradeStatus.reason}`);
+      }
+      
+      console.log(`${settler.name} will rest instead.`);
+      const restResult = settler.rest();
+      console.log(restResult);
+      return;
+    }
+    
+    // Get upgrade details
+    const upgradeStatus = this.game.settlement.canUpgradeShelter();
+    const nextTierName = this.game.settlement.shelterConfig[upgradeStatus.nextTier].name;
+    
+    console.log("\nSHELTER UPGRADE:");
+    console.log(`- Current shelter: ${this.game.settlement.getShelterName()}`);
+    console.log(`- Upgrade to: ${nextTierName}`);
+    console.log(`- Materials required: ${upgradeStatus.materialsNeeded}`);
+    console.log(`- Build time: ${upgradeStatus.timeNeeded} days`);
+    
+    if (upgradeStatus.nextTier === 1) {
+      console.log("- Benefit: Settlers will no longer lose health from exposure at night!");
+    }
+    
+    const confirmUpgrade = await this.game.askQuestion("Begin shelter upgrade? (y/n): ");
+    
+    if (confirmUpgrade.toLowerCase() === 'y') {
+      // Start the upgrade
+      const result = this.game.settlement.startShelterUpgrade(settler);
+      
+      if (result.success) {
+        this.game.logEvent(`${settler.name} has begun building ${nextTierName}. Used ${result.materials} materials and will take ${upgradeStatus.timeNeeded} days to complete.`);
+      } else {
+        console.log(result.message);
+        console.log(`${settler.name} will rest instead.`);
+        const restResult = settler.rest();
+        console.log(restResult);
+      }
+    } else {
+      console.log(`${settler.name} will rest instead.`);
+      const restResult = settler.rest();
+      console.log(restResult);
+    }
   }
 
   // Handle foraging expedition assignment

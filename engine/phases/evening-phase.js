@@ -20,14 +20,45 @@ class EveningPhase {
     console.log(`- Materials remaining: ${this.game.settlement.resources.materials}`);
     console.log(`- Active expeditions: ${this.game.expeditions.length}`);
 
+    // Apply nightly exposure effects
+    await this.applyNightlyEffects();
+
     // Preview tomorrow's events
     await this.displayTomorrowPreview();
 
     // Advance day
     this.game.day++;
 
-    const continueGame = await this.game.askQuestion("\nPress Enter to advance to next day (or type 'quit' to end): ");
-    return continueGame.toLowerCase() !== 'quit';
+    const continueGame = await this.game.askQuestion("\nAdvance to next day? (y/n): ");
+    return continueGame.toLowerCase() === 'y';
+  }
+
+  // Apply nightly exposure effects to settlers
+  async applyNightlyEffects() {
+    console.log("\nNIGHT CONDITIONS:");
+    
+    // Get settlers who are present (not on expeditions)
+    const presentSettlers = this.game.settlers.filter(s => !s.busy);
+    
+    // Apply nightly exposure effects based on shelter level
+    const effects = this.game.settlement.applyNightlyExposureEffects(presentSettlers);
+    
+    // Display shelter status
+    const shelterStatus = this.game.settlement.getShelterStatus();
+    console.log(`Shelter: ${shelterStatus.name} (${shelterStatus.protection}% protection)`);
+    
+    // Display effects
+    if (Array.isArray(effects)) {
+      console.log("Exposure Effects:");
+      for (const effect of effects) {
+        console.log(`- ${effect}`);
+      }
+    } else {
+      console.log(`- ${effects}`);
+    }
+    
+    // Check settler critical status after night exposure
+    this.game.checkCriticalStatus();
   }
 
   async displayTomorrowPreview() {
@@ -62,6 +93,11 @@ class EveningPhase {
     if (this.game.settlement.upgradeInProgress) {
       const status = this.game.settlement.getShelterStatus();
       console.log(`- Shelter upgrade in progress: ${status.nextName} (${status.upgradeTimeLeft} days remaining)`);
+    }
+    
+    // Shelter warning if at makeshift level
+    if (this.game.settlement.shelterTier === 0) {
+      console.log(`! WARNING: Basic shelter needed - settlers will lose health overnight.`);
     }
   }
 }

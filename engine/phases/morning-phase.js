@@ -20,6 +20,9 @@ class MorningPhase {
       if (hopeMessage) console.log("\n" + hopeMessage);
     }
 
+    // Check for shelter upgrade progress
+    await this.processShelterUpgrade();
+
     // Check for random visitors based on hope
     await this.checkForVisitors();
 
@@ -50,6 +53,40 @@ class MorningPhase {
     this.game.displayStatus();
 
     return this.game.askQuestion("\nPress Enter to continue to Resource Distribution...");
+  }
+
+  // Process shelter upgrade progress if one is ongoing
+  async processShelterUpgrade() {
+    if (!this.game.settlement.upgradeInProgress) {
+      return;
+    }
+
+    const upgradeResult = this.game.settlement.processShelterUpgrade();
+    
+    if (upgradeResult) {
+      console.log("\n=== SHELTER UPDATE ===");
+      
+      if (upgradeResult.complete) {
+        console.log(`${upgradeResult.shelterName} construction is complete!`);
+        console.log(`Your settlement now has better protection from the elements.`);
+        
+        if (upgradeResult.hopeMessage) {
+          console.log(upgradeResult.hopeMessage);
+        }
+        
+        console.log(`${upgradeResult.mechanic} is now available for other tasks.`);
+        
+        // Special message for first upgrade (Basic Tents)
+        if (upgradeResult.shelterTier === 1) {
+          console.log("\nWith Basic Tents, your settlers will no longer lose health from exposure at night!");
+        }
+        
+      } else {
+        console.log(`${upgradeResult.shelterName} construction continues.`);
+        console.log(`${upgradeResult.daysLeft} days remaining until completion.`);
+        console.log(`${upgradeResult.mechanic} is still working on the project.`);
+      }
+    }
   }
 
   // Check for random visitor appearance based on hope
@@ -106,6 +143,11 @@ class MorningPhase {
       // Special message for medic
       if (visitor.role === 'Medic') {
         this.game.logEvent("You now have a medic who can heal wounded settlers!");
+      }
+      
+      // Special message for mechanic
+      if (visitor.role === 'Mechanic') {
+        this.game.logEvent("You now have a mechanic who can build and upgrade shelter!");
       }
 
       // Hope boost for new settler

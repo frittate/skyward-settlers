@@ -200,6 +200,27 @@ class Settlement {
     return status;
   }
 
+  // Apply nightly exposure effects to settlers based on shelter level
+  applyNightlyExposureEffects(settlers) {
+    // Only apply if shelter tier is 0 (Makeshift Camp)
+    if (this.shelterTier > 0) {
+      return "Your settlement's shelter protects everyone during the night.";
+    }
+    
+    const effects = [];
+    const healthPenalty = 2; // -2 health per night
+    
+    // Apply penalty to all settlers who are present (not on expedition)
+    for (const settler of settlers) {
+      if (!settler.busy) {
+        settler.health = Math.max(0, settler.health - healthPenalty);
+        effects.push(`${settler.name} lost ${healthPenalty} health from sleeping exposed to the elements.`);
+      }
+    }
+    
+    return effects.length > 0 ? effects : "No settlers were affected by the elements.";
+  }
+
   // Check for effects from shelter quality (applied during weather events)
   applyShelterEffects(settlers, weatherType, weatherSeverity) {
     const shelterProtection = this.shelterConfig[this.shelterTier].protection;
