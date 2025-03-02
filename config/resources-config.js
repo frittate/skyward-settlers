@@ -8,7 +8,8 @@ module.exports = {
     distribution: {
       food: 0.4,    // 40% of resources as food
       water: 0.4,   // 40% of resources as water
-      meds: 0.2     // 20% of resources as medicine (when available)
+      meds: 0.1,     // 20% of resources as medicine
+      materials: 0.1
     },
     
     // Medicine availability by radius

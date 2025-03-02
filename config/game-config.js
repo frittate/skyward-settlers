@@ -8,7 +8,7 @@ module.exports = {
     food: 9,
     water: 9,
     meds: 1,
-    materials: 15,
+    materials: 3,
     hope: 50
   },
   
@@ -41,8 +41,8 @@ module.exports = {
     // Success chance varies by radius
     successChance: {
       'small': 0.8,   // 20% chance of failure
-      'medium': 0.6,  // 40% chance of failure
-      'large': 0.5,   // 50% chance of failure
+      'medium': 0.65,  // 35% chance of failure
+      'large': 0.55,   // 45% chance of failure
       'emergency': 0.3 // 70% chance of failure
     },
     
@@ -57,7 +57,7 @@ module.exports = {
     // Multipliers for resource returns
     resourceMultiplier: {
       'small': 2.5,     // 1.5-2.5x return
-      'medium': 3,    // 2-4x return 
+      'medium': 3.25,    // 2-4x return 
       'large': 4.5    // 3-6x return
     },
     
@@ -78,11 +78,11 @@ module.exports = {
       'newSettler': 15,
       'rescuedSurvivor': 20,
       'turnedAwaySurvivor': -5,
-      'settlerDeath': -20,
-      'settlerAbandonment': -15,
-      'foodShortage': -3,
-      'waterShortage': -3,
-      'daySurvived': 3
+      'settlerDeath': -30,
+      'settlerAbandonment': -20,
+      'foodShortage': -5,
+      'waterShortage': -5,
+      'daySurvived': 2
     }
   },
   
