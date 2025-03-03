@@ -26,7 +26,7 @@ async function showIntroduction() {
   console.log("a sustainable settlement among the skyscrapers.");
   console.log("\nBe careful - resources are scarce, injuries can be deadly without");
   console.log("proper medical care, and survivors may abandon hope if their morale drops too low.");
-  console.log("\nYour mechanic, Sam, is wounded and needs medical attention to recover fully.");
+  console.log("\nYour mechanic is wounded and needs medical attention to recover fully.");
   console.log("Look for a medic in your travels, as they can use medicine to heal wounds.");
 
   await askQuestion("\nPress Enter to begin your survival journey...");

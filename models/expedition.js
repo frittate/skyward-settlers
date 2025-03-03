@@ -14,7 +14,8 @@ class Expedition {
       food: 0,
       water: 0,
       meds: 0,
-      materials: 0  // Added materials as a possible resource
+      materials: 0
+      // Add new resource types here with 0 as initial value
     };
     this.events = [];
     this.returnDay = 0; // Will be set by the game
@@ -59,7 +60,7 @@ class Expedition {
     const config = gameConfig.expedition;
     const resConfig = resourcesConfig.expeditionResources;
     
-    // Handle emergency expeditions differently
+    // Handle emergency expeditions separately
     if (this.radius === 'emergency') {
       this.generateEmergencyResources();
       return;
@@ -67,7 +68,6 @@ class Expedition {
 
     // Check if expedition is successful at finding resources
     const isSuccessful = Math.random() < config.successChance[this.radius];
-
     if (!isSuccessful) {
       this.handleFailedExpedition();
       return;
@@ -78,36 +78,37 @@ class Expedition {
 
     // Add variability to resource returns
     const variabilityFactor = resConfig.variability.min + 
-                             (Math.random() * (resConfig.variability.max - resConfig.variability.min));
+                            (Math.random() * (resConfig.variability.max - resConfig.variability.min));
     const adjustedAmount = Math.ceil(baseAmount * variabilityFactor);
 
     // Create "jackpot" chance for exceptional finds
     const jackpot = Math.random() < config.jackpotChance;
     const jackpotMultiplier = jackpot ? 2 : 1;
+    this.jackpotFind = jackpot;
 
-    // Distribute resources - prioritize food and water
-    this.resources.food += Math.ceil(adjustedAmount * resConfig.distribution.food * jackpotMultiplier);
-    this.resources.water += Math.ceil(adjustedAmount * resConfig.distribution.water * jackpotMultiplier);
+    // Process each resource type using the configuration
+    for (const [resourceType, distribution] of Object.entries(resConfig.distribution)) {
+      // Get chance for this radius if defined, or default to 0
+      const chanceConfig = resConfig.resourceChances[resourceType] || {};
+      const chance = chanceConfig[this.radius] || 0;
+      
+      // Skip if there's no chance to find this resource
+      if (chance <= 0) continue;
 
-    // Medicine only available based on radius config
-    const medicineChance = resConfig.medicineChance[this.radius] || 0;
-    if (Math.random() < medicineChance) {
-      this.resources.meds += jackpot ? randomInt(1, 3) : 1;
-    }
-
-    // Materials can be found in medium and large radius expeditions
-    if (this.radius === 'medium' || this.radius === 'large') {
-      // Materials are less common than other resources
-      const materialsChance = this.radius === 'large' ? 0.4 : 0.2;
-      if (Math.random() < materialsChance) {
-        const baseAmount = this.radius === 'large' ? randomInt(1, 3) : 1;
-        this.resources.materials += jackpot ? baseAmount * 2 : baseAmount;
+      // Check if we find this resource
+      if (Math.random() <= chance) {
+        // If this resource has custom amounts defined, use those
+        const amountConfig = resConfig.resourceAmounts[resourceType];
+        
+        if (amountConfig && amountConfig[this.radius]) {
+          const range = amountConfig[this.radius];
+          const baseAmount = randomInt(range.min, range.max);
+          this.resources[resourceType] += jackpot ? baseAmount * 2 : baseAmount;
+        } else {
+          // Otherwise use the distribution formula
+          this.resources[resourceType] += Math.ceil(adjustedAmount * distribution * jackpotMultiplier);
+        }
       }
-    }
-
-    // Record jackpot
-    if (jackpot) {
-      this.jackpotFind = true;
     }
 
     // Random delay chance
@@ -125,10 +126,15 @@ class Expedition {
       return;
     }
 
-    // Very modest returns if successful
+    // Get emergency resources from config
     const emergency = resourcesConfig.expeditionResources.emergency;
-    this.resources.food = randomInt(emergency.food.min, emergency.food.max); 
-    this.resources.water = randomInt(emergency.water.min, emergency.water.max); 
+    
+    // Add resources for each type defined in emergency config
+    for (const [resourceType, range] of Object.entries(emergency)) {
+      if (range && range.min !== undefined && range.max !== undefined) {
+        this.resources[resourceType] = randomInt(range.min, range.max);
+      }
+    }
   }
   
   // Handle failed expeditions
@@ -255,13 +261,7 @@ class Expedition {
       role = 'Medic';
     }
 
-    // Generate a random name
-    const survivorNames = [
-      'Riley', 'Jordan', 'Taylor', 'Casey', 'Quinn', 'Avery', 
-      'Blake', 'Drew', 'Jamie', 'Morgan', 'Rowan', 'Reese',
-      'Skyler', 'Dakota', 'Kendall', 'Parker', 'Hayden', 'Finley'
-    ];
-    const name = survivorNames[Math.floor(Math.random() * survivorNames.length)];
+    const name = gameConfig.survivorNames[Math.floor(Math.random() * gameConfig.survivorNames.length)];
 
     // Random gift (small amount of resources they bring)
     const gift = {

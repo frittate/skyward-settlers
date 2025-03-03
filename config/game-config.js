@@ -120,5 +120,14 @@ module.exports = {
         hopeBonus: 20      // Increased from 15 to 20
       }
     ]
-  }
+  },
+
+  // Survivor names
+  survivorNames: [
+    'Riley', 'Jordan', 'Taylor', 'Casey', 'Quinn', 'Avery', 
+    'Blake', 'Drew', 'Jamie', 'Morgan', 'Rowan', 'Reese',
+    'Skyler', 'Dakota', 'Kendall', 'Parker', 'Hayden', 'Finley', 'Sam'
+  ],
+
+  dailySurvivalMoraleBoost: 2
 };

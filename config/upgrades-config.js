@@ -113,7 +113,7 @@ module.exports = {
           level: 1,
           name: "Basic Rain Collector",
           description: "Simple tarps and containers to collect rainwater.",
-          materialCost: 3,
+          materialCost: 5,
           buildTime: 1,
           production: {
             min: 1,

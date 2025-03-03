@@ -6,7 +6,7 @@ const MorningPhase = require('./phases/morning-phase');
 const MiddayPhase = require('./phases/midday-phase');
 const AfternoonPhase = require('./phases/afternoon-phase');
 const EveningPhase = require('./phases/evening-phase');
-const { printPhaseHeader, formatResourceList } = require('../utils/utils');
+const gameConfig = require('../config/game-config');
 
 // Main game class
 class GameEngine {
@@ -18,11 +18,18 @@ class GameEngine {
     // Create settlement
     this.settlement = new Settlement();
 
-    // Initialize starter settlers
+    const availableNames = [...gameConfig.survivorNames];
+    const selectedNames = [];
+    for (let i = 0; i < 3; i++) {
+      const randomIndex = Math.floor(Math.random() * availableNames.length);
+      selectedNames.push(availableNames.splice(randomIndex, 1)[0]);
+    }
+
+    // Initialize starter settlers with random names
     this.settlers = [
-      new Settler('Alex', 'Generalist', 100, 100),
-      new Settler('Morgan', 'Generalist', 100, 100),
-      new Settler('Sam', 'Mechanic', 40, 80, true) // Sam starts wounded
+      new Settler(selectedNames[0], 'Generalist', 100, 100),
+      new Settler(selectedNames[1], 'Generalist', 100, 100),
+      new Settler(selectedNames[2], 'Mechanic', 40, 80, true) // Third settler starts wounded
     ];
     
     this.expeditions = []; // Track ongoing expeditions
@@ -106,7 +113,7 @@ class GameEngine {
         this.logEvent(`\n! ${settler.name} has died due to poor health!`);
         this.settlers.splice(i, 1);
         // Major hope loss when settler dies
-        const hopeMessage = this.settlement.updateHope(-20, "settler death");
+        const hopeMessage = this.settlement.updateHope(gameConfig.hope.hopeChange.settlerDeath, "settler death");
         if (hopeMessage) this.logEvent(hopeMessage);
         continue;
       }
@@ -116,7 +123,7 @@ class GameEngine {
         this.logEvent(`\n! ${settler.name} has left the settlement due to low morale!`);
         this.settlers.splice(i, 1);
         // Major hope loss when settler leaves
-        const hopeMessage = this.settlement.updateHope(-15, "settler abandonment");
+        const hopeMessage = this.settlement.updateHope(gameConfig.hope.hopeChange.settlerAbandonment, "settler abandonment");
         if (hopeMessage) this.logEvent(hopeMessage);
         continue;
       }

@@ -6,17 +6,27 @@ module.exports = {
   expeditionResources: {
     // Base distribution percentages
     distribution: {
-      food: 0.4,    // 40% of resources as food
-      water: 0.4,   // 40% of resources as water
-      meds: 0.1,     // 20% of resources as medicine
-      materials: 0.1
+      food: 0.35,    // 35% of resources as food
+      water: 0.35,   // 35% of resources as water
+      meds: 0.15,     // 15% of resources as medicine (when available)
+      materials: 0.15 // 15% of resources as materials (when available)
+      // Add new resource types here with their distribution percentages
     },
     
-    // Medicine availability by radius
-    medicineChance: {
-      'small': 0.0,   // No medicine in small radius
-      'medium': 0.4,  // 40% chance in medium radius
-      'large': 0.6    // 60% chance in large radius
+    // Resource chances by radius and type
+    resourceChances: {
+      'food': { 'small': 1.0, 'medium': 1.0, 'large': 1.0 },
+      'water': { 'small': 1.0, 'medium': 1.0, 'large': 1.0 },
+      'meds': { 'small': 0.3, 'medium': 0.4, 'large': 0.6 },
+      'materials': { 'small': 0.3, 'medium': 0.2, 'large': 0.4 }
+      // Add new resource types here with their chances by radius
+    },
+    
+    // Resource amounts by radius and type (base amounts)
+    resourceAmounts: {
+      'meds': { 'small': { min: 0, max: 2 }, 'medium': { min: 1, max: 3 }, 'large': { min: 2, max: 4 } },
+      'materials': { 'small': { min: 0, max: 2 }, 'medium': { min: 1, max: 3 }, 'large': { min: 2, max: 4 } }
+      // Define custom ranges for resources that don't use the standard distribution formula
     },
     
     // Variability in resource returns
@@ -29,6 +39,7 @@ module.exports = {
     emergency: {
       food: {min: 1, max: 3},
       water: {min: 1, max: 3}
+      // Define emergency expedition resources for each type
     }
   },
   

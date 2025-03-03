@@ -59,8 +59,8 @@ class EveningPhase {
     // Advance day
     this.game.day++;
 
-    const continueGame = await this.game.askQuestion("\nAdvance to next day? (y/n): ");
-    return continueGame.toLowerCase() === 'y';
+    const continueGame = await this.game.askQuestion("\nPress Enter to advance to next day (or type 'quit' to end): ");
+    return continueGame.toLowerCase() !== 'quit';
   }
 
   // Apply nightly exposure effects to settlers

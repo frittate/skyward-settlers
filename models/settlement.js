@@ -456,13 +456,7 @@ class Settlement {
       role = 'Medic';
     }
 
-    // Generate a random name
-    const survivorNames = [
-      'Riley', 'Jordan', 'Taylor', 'Casey', 'Quinn', 'Avery', 
-      'Blake', 'Drew', 'Jamie', 'Morgan', 'Rowan', 'Reese',
-      'Skyler', 'Dakota', 'Kendall', 'Parker', 'Hayden', 'Finley'
-    ];
-    const name = survivorNames[Math.floor(Math.random() * survivorNames.length)];
+    const name = gameConfig.survivorNames[Math.floor(Math.random() * gameConfig.survivorNames.length)];
 
     // Random gift (small amount of resources they bring)
     const gift = {
@@ -533,6 +527,39 @@ class Settlement {
     }
     
     return statusLines;
+  }
+
+  // Add to Settlement class
+  calculateHopeFromMorale(settlers) {
+    // Skip calculation if no settlers
+    if (settlers.length === 0) return;
+    
+    // Calculate average morale
+    const totalMorale = settlers.reduce((sum, settler) => sum + settler.morale, 0);
+    const averageMorale = totalMorale / settlers.length;
+    
+    // Apply infrastructure and shelter bonuses 
+    let hopeModifier = 0;
+    
+    // Shelter bonus based on tier
+    hopeModifier += this.shelterTier * 5; // 0-15 boost based on shelter
+    
+    // Infrastructure count bonus
+    const infrastructureCount = Object.keys(this.infrastructure.infrastructure).length;
+    hopeModifier += infrastructureCount * 3; // 3 hope per infrastructure
+    
+    // Calculate target hope
+    const targetHope = Math.min(100, Math.max(20, averageMorale + hopeModifier));
+    
+    // Slow change: move only 25% of the way toward target per day
+    const hopeChange = Math.round((targetHope - this.hope) * 0.25);
+    
+    // Update hope with smaller increments
+    if (Math.abs(hopeChange) > 0) {
+      this.updateHope(hopeChange, "settler morale");
+    }
+    
+    return hopeChange;
   }
 
   // Format for display

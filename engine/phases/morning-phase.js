@@ -13,12 +13,45 @@ class MorningPhase {
 
     // Add daily hope for survival
     if (this.game.day > 1) {
-      const hopeMessage = this.game.settlement.updateHope(
-        gameConfig.hope.hopeChange.daySurvived, 
-        "another day survived"
-      );
-      if (hopeMessage) console.log("\n" + hopeMessage);
+      console.log("\n=== DAILY SURVIVAL BOOST ===");
+      
+      // Apply small morale boost to each settler for surviving another day
+      const dailyMoraleBoost = gameConfig.dailySurvivalMoraleBoost;
+            
+      let boostMessage = "Another day survived! ";
+      let settlersMentioned = 0;
+      
+      // Apply morale boost to each settler
+      for (const settler of this.game.settlers) {
+        const oldMorale = settler.morale;
+        settler.morale = Math.min(100, settler.morale + dailyMoraleBoost);
+        
+        // Only mention if morale actually increased (might be at 100 already)
+        if (settler.morale > oldMorale) {
+          // Only mention up to 3 settlers directly to avoid cluttering the log
+          if (settlersMentioned < 3) {
+            boostMessage += `${settler.name} (+${dailyMoraleBoost} morale), `;
+            settlersMentioned++;
+          }
+        }
+      }
+      
+      // Finalize message format
+      if (settlersMentioned > 0) {
+        // Remove trailing comma and space
+        boostMessage = boostMessage.slice(0, -2);
+        
+        // Add summary if there are more settlers than we mentioned
+        if (settlersMentioned < this.game.settlers.length) {
+          const remaining = this.game.settlers.length - settlersMentioned;
+          boostMessage += ` and ${remaining} other settler${remaining > 1 ? 's' : ''}`;
+        }
+        
+        boostMessage += ` gained morale from surviving another day.`;
+        console.log(boostMessage);
+      }
     }
+  
 
     // Infrastructure production
     await this.processInfrastructureProduction();
@@ -28,6 +61,11 @@ class MorningPhase {
 
     // Check for shelter upgrade progress
     await this.processShelterUpgrade();
+
+    const hopeFromMorale = this.game.settlement.calculateHopeFromMorale(this.game.settlers);
+    if (hopeFromMorale) {
+      console.log(`Settlement hope ${hopeFromMorale > 0 ? 'increased' : 'decreased'} based on settler morale.`);
+    }
 
     // Check for random visitors based on hope
     await this.checkForVisitors();
