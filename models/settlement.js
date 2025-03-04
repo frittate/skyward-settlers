@@ -469,6 +469,7 @@ class Settlement {
     return { name, role, health, morale, gift };
   }
 
+    // Updated displayInfrastructureStatus method for Settlement class
   displayInfrastructureStatus() {
     const infrastructureSummary = this.infrastructure.getInfrastructureSummary();
     const upgradesInProgress = this.infrastructure.getUpgradesInProgressSummary();
@@ -489,14 +490,14 @@ class Settlement {
       if (foodInfra.length > 0) {
         statusLines.push("- Food Production:");
         for (const item of foodInfra) {
-          statusLines.push(`  ${item.icon} ${item.levelName}${item.count > 1 ? ` (x${item.count})` : ''}: ${item.production.min}-${item.production.max} food/day`);
+          statusLines.push(`  ${item.icon || '🌱'} ${item.name}: ${item.production.min}-${item.production.max} food/day`);
         }
       }
       
       if (waterInfra.length > 0) {
         statusLines.push("- Water Collection:");
         for (const item of waterInfra) {
-          statusLines.push(`  ${item.icon} ${item.levelName}${item.count > 1 ? ` (x${item.count})` : ''}: ${item.production.min}-${item.production.max} water/day`);
+          statusLines.push(`  ${item.icon || '💧'} ${item.name}: ${item.production.min}-${item.production.max} water/day`);
         }
       }
       

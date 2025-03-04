@@ -1,3 +1,5 @@
+// EVENING PHASE - Modified to prepare for night effects instead of applying them
+
 // engine/phases/evening-phase.js
 const { printPhaseHeader } = require('../../utils/utils');
 
@@ -50,8 +52,8 @@ class EveningPhase {
       });
     }
 
-    // Apply nightly exposure effects
-    await this.applyNightlyEffects();
+    // Display shelter status (but don't apply effects yet)
+    await this.displayNightConditions();
 
     // Preview tomorrow's events
     await this.displayTomorrowPreview();
@@ -63,32 +65,21 @@ class EveningPhase {
     return continueGame.toLowerCase() !== 'quit';
   }
 
-  // Apply nightly exposure effects to settlers
-  async applyNightlyEffects() {
+  // Display night conditions without applying effects yet
+  async displayNightConditions() {
     console.log("\nNIGHT CONDITIONS:");
-    
-    // Get settlers who are present (not on expeditions)
-    const presentSettlers = this.game.settlers.filter(s => !s.busy);
-    
-    // Apply nightly exposure effects based on shelter level
-    const effects = this.game.settlement.applyNightlyExposureEffects(presentSettlers);
     
     // Display shelter status
     const shelterStatus = this.game.settlement.getShelterStatus();
     console.log(`Shelter: ${shelterStatus.name} (${shelterStatus.protection}% protection)`);
     
-    // Display effects
-    if (Array.isArray(effects)) {
-      console.log("Exposure Effects:");
-      for (const effect of effects) {
-        console.log(`- ${effect}`);
-      }
+    // Warn about shelter quality but don't apply effects yet
+    if (this.game.settlement.shelterTier === 0) {
+      console.log("- The makeshift shelter provides little protection from the elements.");
+      console.log("- Settlers may lose health overnight due to exposure.");
     } else {
-      console.log(`- ${effects}`);
+      console.log(`- The settlement's shelter provides adequate protection for the night.`);
     }
-    
-    // Check settler critical status after night exposure
-    this.game.checkCriticalStatus();
   }
 
   async displayTomorrowPreview() {
@@ -141,12 +132,8 @@ class EveningPhase {
         console.log(`- ${upgrade.name} will be completed`);
       }
     }
-    
-    // Shelter warning if at makeshift level
-    if (this.game.settlement.shelterTier === 0) {
-      console.log(`! WARNING: Basic shelter needed - settlers will lose health overnight.`);
-    }
   }
 }
+
 
 module.exports = EveningPhase;

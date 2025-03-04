@@ -25,7 +25,7 @@ module.exports = {
     // Resource amounts by radius and type (base amounts)
     resourceAmounts: {
       'meds': { 'small': { min: 0, max: 2 }, 'medium': { min: 1, max: 3 }, 'large': { min: 2, max: 4 } },
-      'materials': { 'small': { min: 0, max: 2 }, 'medium': { min: 1, max: 3 }, 'large': { min: 2, max: 4 } }
+      'materials': { 'small': { min: 0, max: 3 }, 'medium': { min: 2, max: 4 }, 'large': { min: 2, max: 6 } }
       // Define custom ranges for resources that don't use the standard distribution formula
     },
     

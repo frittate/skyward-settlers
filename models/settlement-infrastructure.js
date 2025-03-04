@@ -4,9 +4,11 @@ const upgradesConfig = require('../config/upgrades-config');
 
 class SettlementInfrastructure {
   constructor() {
-    // Track built infrastructure
+    // Track built infrastructure by category and current level
     this.infrastructure = {
-      // Format: { type: 'garden', level: 1, count: 1 }
+      shelter: { level: 0 }, // Shelter starts at level 0 (Makeshift Camp)
+      food: { level: 0 },    // No food production initially
+      water: { level: 0 }    // No water collection initially
     };
     
     // Track upgrades in progress
@@ -24,43 +26,31 @@ class SettlementInfrastructure {
     const available = [];
     const config = upgradesConfig.upgrades;
     
-    // Check each possible upgrade type
-    for (const [type, upgrade] of Object.entries(config)) {
-      // Skip shelter as it's handled separately
-      if (type === 'shelter') continue;
+    // Check each upgrade category
+    for (const [category, categoryConfig] of Object.entries(config)) {
+      // Get current level for this category
+      const currentLevel = this.getInfrastructureLevel(category);
       
-      // Check if we've reached the maximum allowed for this type
-      const existingCount = this.getInfrastructureCount(type);
-      const maxAllowed = upgradesConfig.settings.maxUpgrades[type] || 1;
+      // Check if we can upgrade to the next level
+      const nextLevel = currentLevel + 1;
       
-      if (existingCount >= maxAllowed) {
-        continue;
-      }
+      // Get the tier details for the next level
+      const nextTier = categoryConfig.tiers.find(tier => tier.level === nextLevel);
       
-      // Check prerequisites
-      const prereqsMet = upgrade.prerequisites.every(prereq => 
-        this.getInfrastructureCount(prereq) > 0
-      );
-      
-      if (prereqsMet) {
-        // Get the correct level details
-        const nextLevel = 1; // Currently only supporting level 1 for each type
-        const levelDetails = upgrade.levels.find(l => l.level === nextLevel);
-        
-        if (levelDetails) {
-          available.push({
-            type: type,
-            name: upgrade.name,
-            level: nextLevel,
-            description: levelDetails.description,
-            icon: upgrade.icon,
-            category: upgrade.category,
-            materialCost: levelDetails.materialCost,
-            buildTime: levelDetails.buildTime,
-            production: levelDetails.production,
-            hopeBonus: levelDetails.hopeBonus
-          });
-        }
+      // If a next tier exists, this is an available upgrade
+      if (nextTier) {
+        available.push({
+          category: category,
+          name: `${categoryConfig.name} (${nextTier.name})`,
+          level: nextLevel,
+          description: nextTier.description,
+          icon: categoryConfig.icon,
+          materialCost: nextTier.materialCost,
+          buildTime: nextTier.buildTime,
+          production: nextTier.production,
+          hopeBonus: nextTier.hopeBonus,
+          protection: nextTier.protection // For shelter upgrades
+        });
       }
     }
     
@@ -68,14 +58,17 @@ class SettlementInfrastructure {
   }
   
   // Start a new infrastructure upgrade
-  startUpgrade(upgradeType, mechanics) {
+  startUpgrade(upgradeCategory, mechanics) {
+    // Get all available upgrades
     const availableUpgrades = this.getAvailableUpgrades();
-    const selectedUpgrade = availableUpgrades.find(u => u.type === upgradeType);
+    
+    // Find the selected upgrade by category
+    const selectedUpgrade = availableUpgrades.find(u => u.category === upgradeCategory);
     
     if (!selectedUpgrade) {
       return {
         success: false,
-        message: `Cannot build ${upgradeType} - prerequisites not met or maximum reached.`
+        message: `Cannot upgrade ${upgradeCategory} - no further upgrades available.`
       };
     }
     
@@ -88,7 +81,7 @@ class SettlementInfrastructure {
     
     // Create the upgrade in progress
     const upgrade = {
-      type: selectedUpgrade.type,
+      category: selectedUpgrade.category,
       name: selectedUpgrade.name,
       level: selectedUpgrade.level,
       timeLeft: adjustedBuildTime,
@@ -96,7 +89,8 @@ class SettlementInfrastructure {
       mechanics: mechanics.map(m => m.name),
       materialCost: selectedUpgrade.materialCost,
       production: selectedUpgrade.production,
-      hopeBonus: selectedUpgrade.hopeBonus
+      hopeBonus: selectedUpgrade.hopeBonus,
+      protection: selectedUpgrade.protection
     };
     
     // Add to upgrades in progress
@@ -110,7 +104,7 @@ class SettlementInfrastructure {
     
     return {
       success: true,
-      message: `Started building ${upgrade.name}. Will take ${upgrade.timeLeft} days to complete.`,
+      message: `Started upgrading to ${upgrade.name}. Will take ${upgrade.timeLeft} days to complete.`,
       mechanics: upgrade.mechanics,
       adjustedBuildTime: adjustedBuildTime,
       originalBuildTime: selectedUpgrade.buildTime
@@ -130,8 +124,8 @@ class SettlementInfrastructure {
         // Upgrade is complete
         completed.push(upgrade);
         
-        // Add to infrastructure
-        this.addInfrastructure(upgrade.type, upgrade.level);
+        // Update infrastructure level
+        this.updateInfrastructureLevel(upgrade.category, upgrade.level);
       } else {
         // Upgrade continues
         continuing.push(upgrade);
@@ -141,35 +135,30 @@ class SettlementInfrastructure {
     // Update upgrades in progress
     this.upgradesInProgress = continuing;
     
+    // Recalculate daily production after upgrades
+    this.calculateDailyProduction();
+    
     return {
       completed: completed,
       continuing: continuing
     };
   }
   
-  // Add completed infrastructure
-  addInfrastructure(type, level) {
-    // Check if we already have this type
-    const existing = this.infrastructure[type];
-    
-    if (existing) {
-      existing.count += 1;
+  // Update infrastructure level
+  updateInfrastructureLevel(category, level) {
+    if (this.infrastructure[category]) {
+      this.infrastructure[category].level = level;
     } else {
-      // Create new entry
-      this.infrastructure[type] = {
-        type: type,
-        level: level,
-        count: 1
-      };
+      this.infrastructure[category] = { level: level };
     }
     
     // Recalculate daily production
     this.calculateDailyProduction();
   }
   
-  // Get count of a specific infrastructure type
-  getInfrastructureCount(type) {
-    return this.infrastructure[type] ? this.infrastructure[type].count : 0;
+  // Get current level of a specific infrastructure category
+  getInfrastructureLevel(category) {
+    return this.infrastructure[category] ? this.infrastructure[category].level : 0;
   }
   
   // Calculate daily resource production
@@ -180,25 +169,25 @@ class SettlementInfrastructure {
       water: 0
     };
     
-    // Calculate for each infrastructure
-    for (const [type, info] of Object.entries(this.infrastructure)) {
-      const config = upgradesConfig.upgrades[type];
+    // Calculate for each infrastructure category
+    for (const [category, info] of Object.entries(this.infrastructure)) {
+      const config = upgradesConfig.upgrades[category];
       if (!config) continue;
       
-      const levelDetails = config.levels.find(l => l.level === info.level);
-      if (!levelDetails) continue;
+      // Skip if level is 0 (no infrastructure built)
+      if (info.level === 0) continue;
+      
+      // Get current tier details
+      const tierDetails = config.tiers.find(t => t.level === info.level);
+      if (!tierDetails || !tierDetails.production) continue;
       
       // Determine which resource this produces
-      let resourceType = null;
-      if (config.category === 'food') {
-        resourceType = 'food';
-      } else if (config.category === 'water') {
-        resourceType = 'water';
-      }
-      
-      if (resourceType && levelDetails.production) {
-        // Add to daily production (min value for now, actual will vary)
-        this.dailyProduction[resourceType] += levelDetails.production.min * info.count;
+      if (category === 'food' && tierDetails.production) {
+        // Use minimum production for the daily estimate
+        this.dailyProduction.food += tierDetails.production.min;
+      } else if (category === 'water' && tierDetails.production) {
+        // Use minimum production for the daily estimate
+        this.dailyProduction.water += tierDetails.production.min;
       }
     }
     
@@ -212,28 +201,25 @@ class SettlementInfrastructure {
       water: 0
     };
     
-    // Calculate for each infrastructure type
-    for (const [type, info] of Object.entries(this.infrastructure)) {
-      const config = upgradesConfig.upgrades[type];
+    // Calculate for each infrastructure category
+    for (const [category, info] of Object.entries(this.infrastructure)) {
+      const config = upgradesConfig.upgrades[category];
       if (!config) continue;
       
-      const levelDetails = config.levels.find(l => l.level === info.level);
-      if (!levelDetails || !levelDetails.production) continue;
+      // Skip if level is 0 (no infrastructure built)
+      if (info.level === 0) continue;
       
-      // Determine which resource this produces
-      let resourceType = null;
-      if (config.category === 'food') {
-        resourceType = 'food';
-      } else if (config.category === 'water') {
-        resourceType = 'water';
-      }
+      // Get current tier details
+      const tierDetails = config.tiers.find(t => t.level === info.level);
+      if (!tierDetails || !tierDetails.production) continue;
       
-      if (resourceType) {
-        // Generate random amount within range for each instance
-        for (let i = 0; i < info.count; i++) {
-          const amount = randomInt(levelDetails.production.min, levelDetails.production.max);
-          resources[resourceType] += amount;
-        }
+      // Generate random amount within range
+      if (category === 'food') {
+        const amount = randomInt(tierDetails.production.min, tierDetails.production.max);
+        resources.food += amount;
+      } else if (category === 'water') {
+        const amount = randomInt(tierDetails.production.min, tierDetails.production.max);
+        resources.water += amount;
       }
     }
     
@@ -244,22 +230,25 @@ class SettlementInfrastructure {
   getInfrastructureSummary() {
     const summary = [];
     
-    for (const [type, info] of Object.entries(this.infrastructure)) {
-      const config = upgradesConfig.upgrades[type];
+    for (const [category, info] of Object.entries(this.infrastructure)) {
+      // Skip level 0 infrastructures (not built yet)
+      if (info.level === 0) continue;
+      
+      const config = upgradesConfig.upgrades[category];
       if (!config) continue;
       
-      const levelDetails = config.levels.find(l => l.level === info.level);
-      if (!levelDetails) continue;
+      // Get tier details
+      const tierDetails = config.tiers.find(t => t.level === info.level);
+      if (!tierDetails) continue;
       
       summary.push({
-        type: type,
-        name: config.name,
-        count: info.count,
+        category: category,
+        name: tierDetails.name, // Just use the tier name directly
         level: info.level,
-        levelName: levelDetails.name,
-        icon: config.icon,
-        category: config.category,
-        production: levelDetails.production
+        icon: config.icon || (category === 'food' ? '🌱' : '💧'), // Default icons if none provided
+        description: tierDetails.description,
+        production: tierDetails.production,
+        protection: tierDetails.protection // For shelter
       });
     }
     
@@ -269,12 +258,52 @@ class SettlementInfrastructure {
   // Get upgrades in progress summary
   getUpgradesInProgressSummary() {
     return this.upgradesInProgress.map(upgrade => ({
-      type: upgrade.type,
+      category: upgrade.category,
       name: upgrade.name,
+      level: upgrade.level,
       timeLeft: upgrade.timeLeft,
       originalTime: upgrade.originalTime,
       mechanics: upgrade.mechanics
     }));
+  }
+  
+  // Get the protection level for the current shelter
+  getShelterProtection() {
+    const shelterLevel = this.getInfrastructureLevel('shelter');
+    const shelterConfig = upgradesConfig.upgrades.shelter;
+    
+    if (!shelterConfig || !shelterConfig.tiers) return 0;
+    
+    const tierDetails = shelterConfig.tiers.find(t => t.level === shelterLevel);
+    return tierDetails ? tierDetails.protection : 0;
+  }
+  
+  // Check if a category has a upgrade in progress
+  hasUpgradeInProgress(category) {
+    return this.upgradesInProgress.some(upgrade => upgrade.category === category);
+  }
+  
+  // Get max level for a category
+  getMaxLevel(category) {
+    const config = upgradesConfig.upgrades[category];
+    if (!config || !config.tiers) return 0;
+    
+    // Find the highest level tier
+    let maxLevel = 0;
+    for (const tier of config.tiers) {
+      if (tier.level > maxLevel) {
+        maxLevel = tier.level;
+      }
+    }
+    
+    return maxLevel;
+  }
+  
+  // Check if a category is at max level
+  isAtMaxLevel(category) {
+    const currentLevel = this.getInfrastructureLevel(category);
+    const maxLevel = this.getMaxLevel(category);
+    return currentLevel >= maxLevel;
   }
 }
 

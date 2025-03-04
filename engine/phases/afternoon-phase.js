@@ -119,7 +119,7 @@ class AfternoonPhase {
   }
 
     // Handle infrastructure building assignment
-  async handleShelterAssignment(settler, hasMechanic) {
+    async handleShelterAssignment(settler, hasMechanic) {
       // Check if the settler is a mechanic
       if (!hasMechanic || settler.role !== 'Mechanic') {
         if (!hasMechanic) {
@@ -132,88 +132,158 @@ class AfternoonPhase {
         console.log(restResult);
         return;
       }
-
+    
       console.log("\nINFRASTRUCTURE BUILD OPTIONS:");
-
+    
       const buildOptions = [];
-
-      // Option 1: Shelter (if available)
-      const upgradeInfo = this.game.settlement.canUpgradeShelter();
       
-      if (upgradeInfo.possible) {
-        const nextTier = this.game.settlement.shelterTier + 1;
-        const nextName = this.game.settlement.shelterConfig[nextTier].name;
-        const nextProtection = Math.round(this.game.settlement.shelterConfig[nextTier].protection * 100);
-        const materialCost = upgradeInfo.materialsNeeded;
-        const buildTime = upgradeInfo.timeNeeded;
-        
-        buildOptions.push({
-          type: 'shelter',
-          name: nextName,
-          description: `Improve settlement shelter (${nextProtection}% protection)`,
-          materialCost: materialCost,
-          buildTime: buildTime
-        });
-        
-        console.log(`1. Shelter: Upgrade to ${nextName}`);
-        console.log(`   Materials: ${materialCost}, Build time: ${buildTime} days`);
-        if (nextTier === 1) { // Basic Tents is tier 1
-          console.log("   Benefit: Settlers will no longer lose health at night");
-        } else {
-          console.log("   Benefit: Improved shelter protection and hope bonus");
-        }
-      } else if (this.game.settlement.upgradeInProgress) {
-        console.log("1. [UNAVAILABLE] Shelter upgrade already in progress");
-        buildOptions.push(null);
-      } else if (this.game.settlement.shelterTier >= this.game.settlement.shelterConfig.length - 1) {
-        console.log("1. [UNAVAILABLE] Maximum shelter tier reached");
-        buildOptions.push(null);
-      } else {
-        const nextTier = this.game.settlement.shelterTier + 1;
-        const materialsNeeded = this.game.settlement.shelterConfig[nextTier].materialCost;
-        console.log(`1. [UNAVAILABLE] Shelter upgrade (need ${materialsNeeded} materials, have ${this.game.settlement.resources.materials})`);
-        buildOptions.push(null);
+      // Get all available upgrades from settlement
+      const availableUpgrades = this.game.settlement.infrastructure.getAvailableUpgrades();
+      let optionIndex = 1;
+    
+      // Check if any upgrades are available
+      if (availableUpgrades.length === 0) {
+        console.log("No upgrades available. All infrastructure is at maximum level or upgrades are already in progress.");
+        console.log(`${settler.name} will rest instead.`);
+        const restResult = settler.rest();
+        console.log(restResult);
+        return;
       }
-      
-      // Add infrastructure options
-      const availableUpgrades = this.game.settlement.getAvailableUpgrades();
-      let optionIndex = 2; // Start at 2 since shelter is option 1
-      
+    
       // Group by category for better display
+      const shelterUpgrades = availableUpgrades.filter(u => u.category === 'shelter');
       const foodUpgrades = availableUpgrades.filter(u => u.category === 'food');
       const waterUpgrades = availableUpgrades.filter(u => u.category === 'water');
+      
+      // Shelter infrastructure
+      if (shelterUpgrades.length > 0) {
+        console.log("\nShelter Upgrades:");
+        for (const upgrade of shelterUpgrades) {
+          // Check if we have enough materials
+          const canAfford = this.game.settlement.resources.materials >= upgrade.materialCost;
+          
+          // Check if upgrade is already in progress
+          const inProgress = this.game.settlement.infrastructure.hasUpgradeInProgress('shelter');
+          
+          if (canAfford && !inProgress) {
+            buildOptions.push({
+              category: 'shelter',
+              name: upgrade.name,
+              description: upgrade.description,
+              materialCost: upgrade.materialCost,
+              buildTime: upgrade.buildTime,
+              level: upgrade.level,
+              protection: upgrade.protection
+            });
+            
+            const protectionPercent = Math.round(upgrade.protection * 100);
+            console.log(`${optionIndex}. Shelter: Upgrade to ${upgrade.name}`);
+            console.log(`   ${upgrade.description}`);
+            console.log(`   Materials: ${upgrade.materialCost}, Build time: ${upgrade.buildTime} days`);
+            console.log(`   Protection: ${protectionPercent}%`);
+            
+            // Special message for first upgrade
+            if (upgrade.level === 1) {
+              console.log("   Benefit: Settlers will no longer lose health at night");
+            }
+            
+            optionIndex++;
+          } else if (inProgress) {
+            console.log(`[UNAVAILABLE] Shelter upgrade already in progress`);
+          } else {
+            console.log(`[UNAVAILABLE] Shelter upgrade to ${upgrade.name} (need ${upgrade.materialCost} materials, have ${this.game.settlement.resources.materials})`);
+          }
+        }
+      } else {
+        console.log("No shelter upgrades available.");
+      }
       
       // Food infrastructure
       if (foodUpgrades.length > 0) {
         console.log("\nFood Production Infrastructure:");
         for (const upgrade of foodUpgrades) {
-          buildOptions.push(upgrade);
-          console.log(`${optionIndex}. Food: ${upgrade.name} (${upgrade.icon})`);
-          console.log(`   ${upgrade.description}`);
-          console.log(`   Materials: ${upgrade.materialCost}, Build time: ${upgrade.buildTime} days`);
-          console.log(`   Production: ${upgrade.production.min}-${upgrade.production.max} food per day`);
-          optionIndex++;
+          // Check if we have enough materials
+          const canAfford = this.game.settlement.resources.materials >= upgrade.materialCost;
+          
+          // Check if upgrade is already in progress
+          const inProgress = this.game.settlement.infrastructure.hasUpgradeInProgress('food');
+          
+          if (canAfford && !inProgress) {
+            buildOptions.push({
+              category: 'food',
+              name: upgrade.name,
+              description: upgrade.description,
+              materialCost: upgrade.materialCost,
+              buildTime: upgrade.buildTime,
+              level: upgrade.level,
+              production: upgrade.production
+            });
+            
+            console.log(`${optionIndex}. Food: ${upgrade.name}`);
+            console.log(`   ${upgrade.description}`);
+            console.log(`   Materials: ${upgrade.materialCost}, Build time: ${upgrade.buildTime} days`);
+            console.log(`   Production: ${upgrade.production.min}-${upgrade.production.max} food per day`);
+            optionIndex++;
+          } else if (inProgress) {
+            console.log(`[UNAVAILABLE] Food production upgrade already in progress`);
+          } else {
+            console.log(`[UNAVAILABLE] Food upgrade to ${upgrade.name} (need ${upgrade.materialCost} materials, have ${this.game.settlement.resources.materials})`);
+          }
         }
+      } else {
+        console.log("No food production upgrades available.");
       }
       
       // Water infrastructure
       if (waterUpgrades.length > 0) {
         console.log("\nWater Collection Infrastructure:");
         for (const upgrade of waterUpgrades) {
-          buildOptions.push(upgrade);
-          console.log(`${optionIndex}. Water: ${upgrade.name} (${upgrade.icon})`);
-          console.log(`   ${upgrade.description}`);
-          console.log(`   Materials: ${upgrade.materialCost}, Build time: ${upgrade.buildTime} days`);
-          console.log(`   Production: ${upgrade.production.min}-${upgrade.production.max} water per day`);
-          optionIndex++;
+          // Check if we have enough materials
+          const canAfford = this.game.settlement.resources.materials >= upgrade.materialCost;
+          
+          // Check if upgrade is already in progress
+          const inProgress = this.game.settlement.infrastructure.hasUpgradeInProgress('water');
+          
+          if (canAfford && !inProgress) {
+            buildOptions.push({
+              category: 'water',
+              name: upgrade.name,
+              description: upgrade.description,
+              materialCost: upgrade.materialCost,
+              buildTime: upgrade.buildTime,
+              level: upgrade.level,
+              production: upgrade.production
+            });
+            
+            console.log(`${optionIndex}. Water: ${upgrade.name}`);
+            console.log(`   ${upgrade.description}`);
+            console.log(`   Materials: ${upgrade.materialCost}, Build time: ${upgrade.buildTime} days`);
+            console.log(`   Production: ${upgrade.production.min}-${upgrade.production.max} water per day`);
+            optionIndex++;
+          } else if (inProgress) {
+            console.log(`[UNAVAILABLE] Water collection upgrade already in progress`);
+          } else {
+            console.log(`[UNAVAILABLE] Water upgrade to ${upgrade.name} (need ${upgrade.materialCost} materials, have ${this.game.settlement.resources.materials})`);
+          }
         }
+      } else {
+        console.log("No water collection upgrades available.");
+      }
+      
+      // If no affordable upgrades are available
+      if (buildOptions.length === 0) {
+        console.log("\nNo affordable upgrades available. Make sure you have enough materials.");
+        console.log(`${settler.name} will rest instead.`);
+        const restResult = settler.rest();
+        console.log(restResult);
+        return;
       }
       
       // Add cancel option
       console.log(`\n${optionIndex}. Cancel (settler will rest instead)`);
       
       // Get player choice
-      const buildChoice = await this.game.askQuestion(`\nChoose what to build (1-${optionIndex}): `);
+      const buildChoice = await this.game.askQuestion(`\nChoose what to build or upgrade (1-${optionIndex}): `);
       const choiceNum = parseInt(buildChoice);
       
       if (isNaN(choiceNum) || choiceNum < 1 || choiceNum > optionIndex) {
@@ -234,87 +304,76 @@ class AfternoonPhase {
       // Get the selected option
       const selectedOption = buildOptions[choiceNum - 1];
       
-      // Check if option is available
-      if (!selectedOption) {
-        console.log("That build option is not available.");
+      // First, find if there are other mechanics available to help
+      const availableMechanics = [settler];
+      
+      // Check if there are other mechanics who could help
+      const otherMechanics = this.game.settlers.filter(s => 
+        s.role === 'Mechanic' && 
+        !s.busy && 
+        !s.recovering && 
+        s.name !== settler.name
+      );
+      
+      let additionalMechanics = [];
+      
+      if (otherMechanics.length > 0) {
+        console.log(`\nThere ${otherMechanics.length === 1 ? 'is' : 'are'} ${otherMechanics.length} other available mechanic${otherMechanics.length === 1 ? '' : 's'}.`);
+        console.log("Adding more mechanics will speed up construction.");
+        
+        for (const mechanic of otherMechanics) {
+          const addMechanic = await this.game.askQuestion(`Add ${mechanic.name} to the project? (y/n): `);
+          if (addMechanic.toLowerCase() === 'y') {
+            additionalMechanics.push(mechanic);
+          }
+        }
+      }
+      
+      // All mechanics who will work on the project
+      const projectMechanics = [settler, ...additionalMechanics];
+      
+      // Check if we still have enough materials (might have changed if async)
+      if (this.game.settlement.resources.materials < selectedOption.materialCost) {
+        console.log(`Not enough materials! This upgrade requires ${selectedOption.materialCost} materials.`);
         console.log(`${settler.name} will rest instead.`);
         const restResult = settler.rest();
         console.log(restResult);
         return;
       }
       
-      // Handle the selection
-      if (selectedOption.type === 'shelter') {
-        // Start shelter upgrade
-        const upgradeResult = this.game.settlement.startShelterUpgrade(settler);
+      // Use materials
+      this.game.settlement.resources.materials -= selectedOption.materialCost;
+      
+      // Start the infrastructure upgrade
+      const upgradeResult = this.game.settlement.infrastructure.startUpgrade(
+        selectedOption.category, 
+        projectMechanics
+      );
+      
+      if (upgradeResult.success) {
+        console.log(upgradeResult.message);
         
-        if (upgradeResult.success) {
-          console.log(upgradeResult.message);
-          this.game.logEvent(`Started building ${selectedOption.name}. ${settler.name} will be busy for ${selectedOption.buildTime} days.`);
+        if (projectMechanics.length > 1) {
+          const mechanicNames = projectMechanics.map(m => m.name).join(', ');
+          const originalTime = selectedOption.buildTime;
+          const adjustedTime = upgradeResult.adjustedBuildTime;
+          
+          console.log(`With ${projectMechanics.length} mechanics working together, construction time has been reduced from ${originalTime} to ${adjustedTime} days.`);
+          this.game.logEvent(`Started upgrade to ${selectedOption.name}. ${mechanicNames} will be busy for ${adjustedTime} days.`);
         } else {
-          console.log(upgradeResult.message);
-          console.log(`${settler.name} will rest instead.`);
-          const restResult = settler.rest();
-          console.log(restResult);
+          this.game.logEvent(`Started upgrade to ${selectedOption.name}. ${settler.name} will be busy for ${selectedOption.buildTime} days.`);
         }
       } else {
-        // Handle other infrastructure building
-        // First, find if there are other mechanics available to help
-        const availableMechanics = [settler];
+        // Refund materials if upgrade failed
+        this.game.settlement.resources.materials += selectedOption.materialCost;
         
-        // Check if there are other mechanics who could help
-        const otherMechanics = this.game.settlers.filter(s => 
-          s.role === 'Mechanic' && 
-          !s.busy && 
-          !s.recovering && 
-          s.name !== settler.name
-        );
-        
-        let additionalMechanics = [];
-        
-        if (otherMechanics.length > 0) {
-          console.log(`\nThere ${otherMechanics.length === 1 ? 'is' : 'are'} ${otherMechanics.length} other available mechanic${otherMechanics.length === 1 ? '' : 's'}.`);
-          console.log("Adding more mechanics will speed up construction.");
-          
-          for (const mechanic of otherMechanics) {
-            const addMechanic = await this.game.askQuestion(`Add ${mechanic.name} to the project? (y/n): `);
-            if (addMechanic.toLowerCase() === 'y') {
-              additionalMechanics.push(mechanic);
-            }
-          }
-        }
-        
-        // All mechanics who will work on the project
-        const projectMechanics = [settler, ...additionalMechanics];
-        
-        // Start the infrastructure upgrade
-        const upgradeResult = this.game.settlement.startInfrastructureUpgrade(
-          selectedOption.type, 
-          projectMechanics
-        );
-        
-        if (upgradeResult.success) {
-          console.log(upgradeResult.message);
-          
-          if (projectMechanics.length > 1) {
-            const mechanicNames = projectMechanics.map(m => m.name).join(', ');
-            const originalTime = selectedOption.buildTime;
-            const adjustedTime = upgradeResult.adjustedBuildTime;
-            
-            console.log(`With ${projectMechanics.length} mechanics working together, construction time has been reduced from ${originalTime} to ${adjustedTime} days.`);
-            this.game.logEvent(`Started building ${selectedOption.name}. ${mechanicNames} will be busy for ${adjustedTime} days.`);
-          } else {
-            this.game.logEvent(`Started building ${selectedOption.name}. ${settler.name} will be busy for ${selectedOption.buildTime} days.`);
-          }
-        } else {
-          console.log(upgradeResult.message);
-          console.log(`${settler.name} will rest instead.`);
-          const restResult = settler.rest();
-          console.log(restResult);
-        }
+        console.log(upgradeResult.message);
+        console.log(`${settler.name} will rest instead.`);
+        const restResult = settler.rest();
+        console.log(restResult);
       }
-  }
-
+    }
+    
   // Handle foraging expedition assignment
   async handleForagingAssignment(settler, currentExpeditions, maxExpeditions) {
     if (currentExpeditions >= maxExpeditions) {

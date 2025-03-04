@@ -1,4 +1,7 @@
-// engine/phases/morning-phase.js
+
+// MORNING PHASE - Modified to apply night effects
+
+// engine/phases/morning-phase.js 
 const { printPhaseHeader, formatResourceList } = require('../../utils/utils');
 const gameConfig = require('../../config/game-config');
 
@@ -11,88 +14,18 @@ class MorningPhase {
     printPhaseHeader("MORNING PHASE: RETURN & REPORT");
     console.log(`Day ${this.game.day} has begun.`);
 
+    // Apply overnight exposure effects first
+    await this.applyNightlyEffects();
+
     // Add daily hope for survival
     if (this.game.day > 1) {
-      console.log("\n=== DAILY SURVIVAL BOOST ===");
-      
-      // Apply small morale boost to each settler for surviving another day
-      const dailyMoraleBoost = gameConfig.dailySurvivalMoraleBoost;
-            
-      let boostMessage = "Another day survived! ";
-      let settlersMentioned = 0;
-      
-      // Apply morale boost to each settler
-      for (const settler of this.game.settlers) {
-        const oldMorale = settler.morale;
-        settler.morale = Math.min(100, settler.morale + dailyMoraleBoost);
-        
-        // Only mention if morale actually increased (might be at 100 already)
-        if (settler.morale > oldMorale) {
-          // Only mention up to 3 settlers directly to avoid cluttering the log
-          if (settlersMentioned < 3) {
-            boostMessage += `${settler.name} (+${dailyMoraleBoost} morale), `;
-            settlersMentioned++;
-          }
-        }
-      }
-      
-      // Finalize message format
-      if (settlersMentioned > 0) {
-        // Remove trailing comma and space
-        boostMessage = boostMessage.slice(0, -2);
-        
-        // Add summary if there are more settlers than we mentioned
-        if (settlersMentioned < this.game.settlers.length) {
-          const remaining = this.game.settlers.length - settlersMentioned;
-          boostMessage += ` and ${remaining} other settler${remaining > 1 ? 's' : ''}`;
-        }
-        
-        boostMessage += ` gained morale from surviving another day.`;
-        console.log(boostMessage);
-      }
-    }
-  
-
-    // Infrastructure production
-    await this.processInfrastructureProduction();
-
-    // Check for infrastructure upgrades
-    await this.processInfrastructureUpgrades();
-
-    // Check for shelter upgrade progress
-    await this.processShelterUpgrade();
-
-    const hopeFromMorale = this.game.settlement.calculateHopeFromMorale(this.game.settlers);
-    if (hopeFromMorale) {
-      console.log(`Settlement hope ${hopeFromMorale > 0 ? 'increased' : 'decreased'} based on settler morale.`);
+      const hopeMessage = this.game.settlement.updateHope(
+        gameConfig.hope.hopeChange.daySurvived, 
+        "another day survived"
+      );
+      if (hopeMessage) console.log("\n" + hopeMessage);
     }
 
-    // Check for random visitors based on hope
-    await this.checkForVisitors();
-
-    // Track consecutive days with sufficient resources
-    const stabilityMessage = this.game.settlement.trackResourceStability(this.game.settlers);
-    if (stabilityMessage) {
-      console.log("\n" + stabilityMessage);
-    }
-
-    // Process settlers who are recovering
-    this.processRecovery();
-
-    // Process status reports from expedition
-    await this.processStatusReports();
-
-    // Process returning expeditions
-    await this.processReturningExpeditions();
-
-    // Display current status after all morning events
-    this.game.displayStatus();
-
-    return this.game.askQuestion("\nPress Enter to continue to Resource Distribution...");
-  }
-
-  // Process infrastructure production
-  async processInfrastructureProduction() {
     const production = this.game.settlement.processDailyProduction();
     if (production.food > 0 || production.water > 0) {
       console.log("\n=== INFRASTRUCTURE PRODUCTION ===");
@@ -103,22 +36,70 @@ class MorningPhase {
         console.log(`Water collectors gathered ${production.water} water.`);
       }
     }
+
+    await this.processInfrastructureUpgrades();
+
+    // Check for shelter upgrade progress
+    await this.processShelterUpgrade();
+
+    // Check for random visitors based on hope
+    await this.checkForVisitors();
+
+    // Track consecutive days with sufficient resources
+    const stabilityMessage = this.game.settlement.trackResourceStability(this.game.settlers);
+    if (stabilityMessage) {
+      console.log("\n" + stabilityMessage);
+    }
+
+    // Update recovery status for all settlers
+    this.game.settlers.forEach(settler => {
+      const recoveryMessage = settler.updateRecovery();
+      if (recoveryMessage) {
+        console.log(recoveryMessage);
+      }
+    });
+
+    // 1. Check for expedition status reports
+    await this.processStatusReports();
+
+    // 2. Process returning expeditions
+    await this.processReturningExpeditions();
+
+    // Display settler status changes
+    await this.displaySettlerStatus();
+
+    // Display current status after returns
+    this.game.displayStatus();
+
+    return this.game.askQuestion("\nPress Enter to continue to Resource Distribution...");
   }
 
-  // Process settlers who are recovering
-  processRecovery() {
-    const recoveringSettlers = this.game.settlers.filter(s => s.recovering);
+  // Apply nightly exposure effects to settlers (moved from evening phase)
+  async applyNightlyEffects() {
+    console.log("\nOVERNIGHT EFFECTS:");
     
-    if (recoveringSettlers.length > 0) {
-      console.log("\n=== SETTLER RECOVERY ===");
-      
-      recoveringSettlers.forEach(settler => {
-        const recoveryMessage = settler.updateRecovery();
-        if (recoveryMessage) {
-          console.log(recoveryMessage);
+    // Get settlers who are present (not on expeditions)
+    const presentSettlers = this.game.settlers.filter(s => !s.busy);
+    
+    // Apply nightly exposure effects based on shelter level
+    const effects = this.game.settlement.applyNightlyExposureEffects(presentSettlers);
+    
+    // Display effects
+    if (Array.isArray(effects)) {
+      if (effects.length > 0) {
+        console.log("Night Exposure Effects:");
+        for (const effect of effects) {
+          console.log(`- ${effect}`);
         }
-      });
+      } else {
+        console.log("- All settlers slept comfortably through the night.");
+      }
+    } else {
+      console.log(`- ${effects}`);
     }
+    
+    // Check settler critical status after night exposure
+    this.game.checkCriticalStatus();
   }
 
   async processInfrastructureUpgrades() {
@@ -152,24 +133,20 @@ class MorningPhase {
         
         // Show production info
         if (completed.production) {
-          const category = completed.type === 'garden' || completed.type === 'greenhouse' || completed.type === 'hydroponics' 
-            ? 'food' 
-            : 'water';
-            
+          const category = completed.category === 'food' ? 'food' : 'water';  
           console.log(`- Will produce ${completed.production.min}-${completed.production.max} ${category} per day.`);
         }
       }
       
-      // Report on continuing upgrades only if there are any
-      if (upgradeResults.continuing.length > 0) {
-        console.log("\nOngoing construction:");
-        for (const continuing of upgradeResults.continuing) {
-          console.log(`- ${continuing.name}: ${continuing.timeLeft} days remaining (${continuing.mechanics.join(', ')} working)`);
-        }
+      // Report on continuing upgrades
+      for (const continuing of upgradeResults.continuing) {
+        console.log(`🔨 ${continuing.name} construction continues.`);
+        console.log(`- ${continuing.timeLeft} days remaining until completion.`);
+        console.log(`- ${continuing.mechanics.join(', ')} ${continuing.mechanics.length > 1 ? 'are' : 'is'} working on the project.`);
       }
     }
   }
-
+  
   // Process shelter upgrade progress if one is ongoing
   async processShelterUpgrade() {
     if (!this.game.settlement.upgradeInProgress) {
@@ -195,8 +172,10 @@ class MorningPhase {
         if (upgradeResult.shelterTier === 1) {
           console.log("\nWith Basic Tents, your settlers will no longer lose health from exposure at night!");
         }
+        
       } else {
-        console.log(`${upgradeResult.shelterName} construction continues: ${upgradeResult.daysLeft} days remaining.`);
+        console.log(`${upgradeResult.shelterName} construction continues.`);
+        console.log(`${upgradeResult.daysLeft} days remaining until completion.`);
         console.log(`${upgradeResult.mechanic} is still working on the project.`);
       }
     }
@@ -206,7 +185,7 @@ class MorningPhase {
   async checkForVisitors() {
     const visitorChance = this.game.settlement.getVisitorChance();
 
-    if (this.game.day !== 1 && (visitorChance > 0 && Math.random() * 100 < visitorChance)) {
+    if (visitorChance > 0 && Math.random() * 100 < visitorChance) {
       await this.handleVisitor();
     }
   }
@@ -287,7 +266,7 @@ class MorningPhase {
     );
 
     if (activeExpeditions.length > 0) {
-      console.log("\n=== EXPEDITION STATUS REPORTS ===");
+      console.log("\nEXPEDITION STATUS REPORTS:");
       for (const expedition of activeExpeditions) {
         console.log(`- ${expedition.statusReport}`);
       }
@@ -299,12 +278,11 @@ class MorningPhase {
     const returnedExpeditions = this.game.expeditions.filter(exp => exp.returnDay === this.game.day);
 
     if (returnedExpeditions.length > 0) {
-      console.log("\n=== RETURNING EXPEDITIONS ===");
+      console.log("\nRETURNING EXPEDITIONS:");
 
       for (const expedition of returnedExpeditions) {
         const settler = expedition.settler;
         settler.busy = false;
-        settler.busyUntil = 0;
 
         // Set recovery period
         settler.recovering = true;
@@ -441,6 +419,19 @@ class MorningPhase {
       );
       if (hopeMessage) this.game.logEvent(hopeMessage);
     }
+  }
+
+  // Display settler status changes
+  async displaySettlerStatus() {
+    console.log("\nSETTLER STATUS:");
+    this.game.settlers.forEach(settler => {
+      if (settler.health < 50 && !settler.busy) {
+        console.log(`- ${settler.name} is in poor health (${settler.health}/100).`);
+      }
+      if (settler.morale < 50 && !settler.busy) {
+        console.log(`- ${settler.name} has low morale (${settler.morale}/100).`);
+      }
+    });
   }
 }
 

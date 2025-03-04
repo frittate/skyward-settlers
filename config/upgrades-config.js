@@ -11,16 +11,6 @@ module.exports = {
       3: 2.5,     // 3 mechanics = 2.5x speed (60% faster)
       4: 3.0      // 4+ mechanics = 3.0x speed (70% faster)
     },
-    // Maximum allowed of each type
-    maxUpgrades: {
-      'shelter': 1,     // Only one shelter
-      'garden': 2,      // Up to 2 gardens
-      'greenhouse': 1,  // Only one greenhouse
-      'hydroponics': 1, // Only one hydroponics
-      'collector': 3,   // Up to 3 rain collectors
-      'barrels': 2,     // Up to 2 proper rain barrels
-      'waterTank': 1    // Only one water tank
-    }
   },
   
   // Upgrade types and their properties
@@ -31,141 +21,159 @@ module.exports = {
       description: "Improves living conditions and protection.",
       icon: "🏕️",
       category: "shelter",
-      // Shelter levels defined in game-config.js
-    },
-    
-    // Food production upgrades
-    'garden': {
-      name: "Rooftop Garden",
-      description: "A small garden to grow basic food.",
-      icon: "🌱",
-      category: "food",
-      prerequisites: [],  // No prerequisites
-      levels: [
+      tiers: [
+        // Tier 0: Makeshift Camp
+        {
+          level: 0,
+          name: "Makeshift Camp",
+          description: "A temporary shelter with minimal protection.",
+          protection: 0.5,
+          materialCost: 0
+        },
+        // Tier 1: Basic Tents
         {
           level: 1,
-          name: "Basic Garden",
-          description: "Simple planter boxes for growing food.",
+          name: "Basic Tents", 
+          protection: 0.75,
+          description: "A number of basic tents with improved protection.",
+          materialCost: 6,  // Reduced from 15 to 10
+          buildTime: 2,      // Reduced from 3 to 2
+          hopeBonus: 10      // Increased from 5 to 10
+        },
+        // Tier 2: Reinforced Shelters
+        {
+          level: 2,
+          name: "Reinforced Shelters",
+          description: "Shelters with reinforced walls and roofs.",
+          protection: 0.9,
+          materialCost: 12,
+          buildTime: 4,      // Reduced from 5 to 4
+          hopeBonus: 15      // Increased from 10 to 15
+        },
+        // Tier 3: Permanent Settlement
+        {
+          level: 3,
+          name: "Permanent Settlement",
+          description: "A permanent settlement with strong protection.",
+          protection: 1.0,
+          materialCost: 24,  // Reduced from 50 to 40
+          buildTime: 6,      // Reduced from 7 to 6
+          hopeBonus: 20      // Increased from 15 to 20
+        }
+      ]
+    },
+    'food': {
+      name: "Food Production",
+      description: "Upgrades to increase food production.",
+      category: "food",
+      icon: '',
+      tiers: [
+        {
+          level: 1,
+          name: "Patch of dirt",
+          description: "A small patch of dirt to grow basic food and fungi.",
           materialCost: 5,
-          buildTime: 2,
+          buildTime: 3,
           production: {
             min: 1,
             max: 2
           },
           hopeBonus: 5
-        }
+        },
+       {
+        level: 2,
+        name: "Rooftop Garden",
+        description: "A small garden to grow basic food.",
+        materialCost: 10,
+        buildTime: 4,
+        production: {
+          min: 3,
+          max: 4
+        },
+        hopeBonus: 10
+      },
+      {
+        level: 3,
+        name: "Hydroponic Setup",
+        description: "A water-efficient setup for growing food.",
+        materialCost: 20,
+        buildTime: 5,
+        production: {
+          min: 5,
+          max: 8
+        },
+        hopeBonus: 15
+      },
+      {
+        level: 4,
+        name: "Greenhouse",
+        description: "A protected environment for growing more food.",
+        materialCost: 30,
+        buildTime: 6,
+        production: {
+          min: 10,
+          max: 15
+        },
+        hopeBonus: 20
+      }
       ]
     },
-    
-    'greenhouse': {
-      name: "Greenhouse",
-      description: "A protected environment for growing more food.",
-      icon: "🏡",
-      category: "food",
-      prerequisites: ['garden'],  // Requires garden first
-      levels: [
-        {
-          level: 1,
-          name: "Makeshift Greenhouse",
-          description: "A small structure with recovered glass and plastic sheets.",
-          materialCost: 15,
-          buildTime: 4,
-          production: {
-            min: 3,
-            max: 5
-          },
-          hopeBonus: 10
-        }
-      ]
-    },
-    
-    'hydroponics': {
-      name: "Hydroponics System",
-      description: "Advanced system for growing food without soil.",
-      icon: "🌿",
-      category: "food",
-      prerequisites: ['greenhouse'],  // Requires greenhouse first
-      levels: [
-        {
-          level: 1,
-          name: "Basic Hydroponics",
-          description: "Water-based growing system for efficient food production.",
-          materialCost: 25,
-          buildTime: 6,
-          production: {
-            min: 5,
-            max: 8
-          },
-          hopeBonus: 15
-        }
-      ]
-    },
-    
-    // Water collection upgrades
-    'collector': {
-      name: "Rain Collector",
-      description: "Collects rainwater for drinking.",
-      icon: "💧",
+    'water': {
+      name: 'Water',
+      description: "Upgrade your shelter to collect and store water.",
+      icon: "💦",
       category: "water",
       prerequisites: [],  // No prerequisites
-      levels: [
+      tiers: [
         {
           level: 1,
-          name: "Basic Rain Collector",
-          description: "Simple tarps and containers to collect rainwater.",
+          name: "Basic Water Collection",
+          description: "Simple buckets to collect and store water.",
           materialCost: 5,
-          buildTime: 1,
+          buildTime: 2,
           production: {
             min: 1,
             max: 3
           },
           hopeBonus: 5
-        }
-      ]
-    },
-    
-    'barrels': {
-      name: "Rain Barrels",
-      description: "Proper barrels for collecting and storing rainwater.",
-      icon: "🛢️",
-      category: "water",
-      prerequisites: ['collector'],  // Requires collector first
-      levels: [
+        },
         {
-          level: 1,
-          name: "Proper Rain Barrels",
-          description: "Sealed barrels with filtration for efficient water collection.",
-          materialCost: 12,
+          level: 2,
+          name: "Water Tank",
+          description: "Tanks to store more water.",
+          materialCost: 10,
           buildTime: 3,
           production: {
             min: 3,
-            max: 5
+            max: 6
           },
-          hopeBonus: 8
-        }
-      ]
-    },
-    
-    'waterTank': {
-      name: "Water Tank",
-      description: "Large tank for collecting and storing significant amounts of water.",
-      icon: "🚰",
-      category: "water",
-      prerequisites: ['barrels'],  // Requires barrels first
-      levels: [
+          hopeBonus: 10
+        },
         {
-          level: 1,
-          name: "Rooftop Water Tank",
-          description: "Large capacity tank with filtration system.",
+          level: 3,
+          name: "Water Purifier",
+          description: "A system to purify water for drinking.",
+          materialCost: 15,
+          buildTime: 4,
+          production: {
+            min: 6,
+            max: 9
+          },
+          hopeBonus: 15
+        },
+        {
+          level: 4,
+          name: "Rainwater Harvesting",
+          description: "Advanced systems to collect rainwater.",
           materialCost: 20,
           buildTime: 5,
           production: {
-            min: 5,
-            max: 10
+            min: 9,
+            max: 15
           },
-          hopeBonus: 12
+          hopeBonus: 20
         }
       ]
-    }
+    },
   }
 };
