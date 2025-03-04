@@ -206,7 +206,7 @@ class MorningPhase {
   async checkForVisitors() {
     const visitorChance = this.game.settlement.getVisitorChance();
 
-    if (visitorChance > 0 && Math.random() * 100 < visitorChance) {
+    if (this.game.day !== 1 && (visitorChance > 0 && Math.random() * 100 < visitorChance)) {
       await this.handleVisitor();
     }
   }
