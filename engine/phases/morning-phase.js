@@ -9,11 +9,11 @@ class MorningPhase {
 
   async execute() {
     printPhaseHeader("MORNING PHASE: RETURN & REPORT");
-    console.log(`Day ${this.game.day} has begun.`);
+    console.log(`%c Day ${this.game.day} has begun.`, "color:blue");
 
     // Add daily hope for survival
     if (this.game.day > 1) {
-      console.log("\n=== DAILY SURVIVAL BOOST ===");
+      console.log("\n %c === DAILY SURVIVAL BOOST ===", "color:yellow");
       
       // Apply small morale boost to each settler for surviving another day
       const dailyMoraleBoost = gameConfig.dailySurvivalMoraleBoost;
@@ -88,7 +88,7 @@ class MorningPhase {
     // Display current status after all morning events
     this.game.displayStatus();
 
-    return this.game.askQuestion("\nPress Enter to continue to Resource Distribution...");
+    return this.game.askQuestion("\n%cPress Enter to continue to Resource Distribution...", "color:yellow");
   }
 
   // Process infrastructure production
@@ -115,7 +115,7 @@ class MorningPhase {
       recoveringSettlers.forEach(settler => {
         const recoveryMessage = settler.updateRecovery();
         if (recoveryMessage) {
-          console.log(recoveryMessage);
+          console.log("%c%s", "color:green", recoveryMessage);
         }
       });
     }
@@ -183,7 +183,7 @@ class MorningPhase {
       
       if (upgradeResult.complete) {
         console.log(`${upgradeResult.shelterName} construction is complete!`);
-        console.log(`Your settlement now has better protection from the elements.`);
+        console.log(`%cYour settlement now has better protection from the elements.`, "color:green");
         
         if (upgradeResult.hopeMessage) {
           console.log(upgradeResult.hopeMessage);
@@ -193,7 +193,7 @@ class MorningPhase {
         
         // Special message for first upgrade (Basic Tents)
         if (upgradeResult.shelterTier === 1) {
-          console.log("\nWith Basic Tents, your settlers will no longer lose health from exposure at night!");
+          console.log("\n%cWith Basic Tents, your settlers will no longer lose health from exposure at night!", "color:green");
         }
       } else {
         console.log(`${upgradeResult.shelterName} construction continues: ${upgradeResult.daysLeft} days remaining.`);
