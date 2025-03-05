@@ -19,9 +19,6 @@ class Settlement {
     this.daysWithFood = 0;
     this.daysWithWater = 0;
 
-    // Settlement hope system
-    this.hope = gameConfig.starting.hope;
-
     // Shelter system
     this.shelterTier = 0; // 0=Makeshift, 1=Tents, 2=Reinforced, 3=Permanent
     
@@ -383,56 +380,66 @@ class Settlement {
     return null;
   }
 
-  // Update settlement hope based on events
-  updateHope(amount, reason) {
-    const oldHope = this.hope;
-    this.hope = Math.max(0, Math.min(100, this.hope + amount));
-
-    if (oldHope !== this.hope) {
-      if (amount > 0) {
-        return `Hope increased by ${amount} (${reason}). Settlement hope is now ${this.hope}.`;
-      } else {
-        return `Hope decreased by ${Math.abs(amount)} (${reason}). Settlement hope is now ${this.hope}.`;
-      }
+  getHope(settlers) {
+    // If there are no settlers, return a default value
+    if (!settlers || settlers.length === 0) {
+      return 50; // Default hope value when there are no settlers
     }
-
-    return null;
+    
+    // Calculate average morale
+    const totalMorale = settlers.reduce((sum, settler) => sum + settler.morale, 0);
+    const avgMorale = totalMorale / settlers.length;
+    
+    // Apply the smooth curve cushioning
+    const cushionFactor = 10;
+    
+    // Calculate absolute distance from the midpoint (50), normalized to 0-1 range
+    const normalizedDistance = Math.abs(avgMorale - 50) / 50;
+    
+    // Calculate the cushioning amount - maximum at center, tapering to 0 at extremes
+    const cushionAmount = cushionFactor * (1 - normalizedDistance);
+    
+    // Apply the cushioning - boosting hope most at the middle range
+    const calculatedHope = Math.round(avgMorale + cushionAmount);
+    
+    // Clamp the result to 0-100 range
+    return Math.max(0, Math.min(100, calculatedHope));
   }
-
+  
   // Calculate visitor chance based on hope
-  getVisitorChance() {
-    if (this.hope < 30) return 0;
-    return Math.min(15, 5 + Math.floor(this.hope / 10));
+  getVisitorChance(hope) {
+    if (hope < 30) return 0;
+    return Math.min(15, 5 + Math.floor(hope / 10));
   }
-
+  
   // Get hope description and effects
-  getHopeDescription() {
-    const mitigationPercent = Math.min(50, Math.floor(this.hope / 2));
+  getHopeDescription(hope) {
+    const mitigationPercent = Math.min(50, Math.floor(hope / 2));
     let hopeDescription;
-
-    if (this.hope >= 80) {
+  
+    if (hope >= 80) {
       hopeDescription = "Your settlers are inspired and optimistic about their future.";
-    } else if (this.hope >= 60) {
+    } else if (hope >= 60) {
       hopeDescription = "Your settlement has a positive atmosphere.";
-    } else if (this.hope >= 40) {
+    } else if (hope >= 40) {
       hopeDescription = "The mood in the settlement is cautiously hopeful.";
-    } else if (this.hope >= 20) {
+    } else if (hope >= 20) {
       hopeDescription = "Doubt and concern are spreading in the settlement.";
     } else {
       hopeDescription = "The settlement feels bleak and desperate.";
     }
-
+  
     const effects = [
       hopeDescription,
       `Reduces health/morale penalties by ${mitigationPercent}%`
     ];
-
+  
     // Display visitor chance if hope is high enough
-    if (this.hope >= 30) {
-      const visitorChance = this.getVisitorChance();
+    if (hope >= 30) {
+      const visitorChance = this.getVisitorChance(hope);
       effects.push(`${visitorChance}% daily chance of attracting visitors`);
     }
-
+  
     return effects;
   }
 
@@ -530,43 +537,9 @@ class Settlement {
     return statusLines;
   }
 
-  // Add to Settlement class
-  calculateHopeFromMorale(settlers) {
-    // Skip calculation if no settlers
-    if (settlers.length === 0) return;
-    
-    // Calculate average morale
-    const totalMorale = settlers.reduce((sum, settler) => sum + settler.morale, 0);
-    const averageMorale = totalMorale / settlers.length;
-    
-    // Apply infrastructure and shelter bonuses 
-    let hopeModifier = 0;
-    
-    // Shelter bonus based on tier
-    hopeModifier += this.shelterTier * 5; // 0-15 boost based on shelter
-    
-    // Infrastructure count bonus
-    const infrastructureCount = Object.keys(this.infrastructure.infrastructure).length;
-    hopeModifier += infrastructureCount * 3; // 3 hope per infrastructure
-    
-    // Calculate target hope
-    const targetHope = Math.min(100, Math.max(20, averageMorale + hopeModifier));
-    
-    // Slow change: move only 25% of the way toward target per day
-    const hopeChange = Math.round((targetHope - this.hope) * 0.25);
-    
-    // Update hope with smaller increments
-    if (Math.abs(hopeChange) > 0) {
-      this.updateHope(hopeChange, "settler morale");
-    }
-    
-    return hopeChange;
-  }
-
   // Format for display
   toString() {
     return `Settlement Resources: Food: ${this.resources.food}, Water: ${this.resources.water}, Meds: ${this.resources.meds}, Materials: ${this.resources.materials}
-Settlement Hope: ${this.hope}
 Shelter: ${this.getShelterName()} (${this.getShelterProtection()}% protection)
 ${this.upgradeInProgress ? `Upgrade in progress: ${this.upgradeTimeLeft} days remaining` : ''}`;
   }

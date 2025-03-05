@@ -70,18 +70,18 @@ module.exports = {
   
   // Hope system configuration
   hope: {
-    // Events that affect settlement hope
+    // Events that affect settler hope
     hopeChange: {
-      'successfulExpedition': 8,
-      'exceptionalFind': 10,
+      'successfulExpedition': 5,
+      'exceptionalFind': 5,
       'failedExpedition': -5,
-      'newSettler': 15,
-      'rescuedSurvivor': 20,
+      'newSettler': 10,
+      'rescuedSurvivor': 15,
       'turnedAwaySurvivor': -5,
       'settlerDeath': -30,
       'settlerAbandonment': -20,
-      'foodShortage': -5,
-      'waterShortage': -5,
+      'foodShortage': -3,
+      'waterShortage': -3,
       'daySurvived': 2
     }
   },

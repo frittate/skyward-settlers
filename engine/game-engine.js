@@ -56,8 +56,6 @@ class GameEngine {
     });
     console.log(message);
   }
-
-  // Display current game state
   displayStatus() {
     console.log(`\n--- DAY ${this.day} STATUS ---`);
     console.log('\nSETTLERS:');
@@ -77,27 +75,27 @@ class GameEngine {
         console.log(`${index + 1}. ${settler.toString()}`);
       }
     });
-
+  
     console.log('\nRESOURCES:');
     console.log(`Food: ${this.settlement.resources.food}`);
     console.log(`Water: ${this.settlement.resources.water}`);
     console.log(`Meds: ${this.settlement.resources.meds}`);
     console.log(`Materials: ${this.settlement.resources.materials}`);
-
-    // Display Settlement Hope
-    console.log(`\nSETTLEMENT HOPE: ${this.settlement.hope}`);
-    this.displayHopeEffect();
-
+  
+    // Display Settlement Hope - passing settlers to the settlement
+    const currentHope = this.settlement.getHope(this.settlers);
+    console.log(`\nSETTLEMENT HOPE: ${currentHope}`);
+    this.displayHopeEffect(currentHope);
+  
     // Display Settlement Infrastructure
     console.log('\nINFRASTRUCTURE:');
     const infrastructureStatus = this.settlement.displayInfrastructureStatus();
     infrastructureStatus.forEach(line => console.log(line));
-
   }
-
+  
   // Display the effect of current hope level
-  displayHopeEffect() {
-    const hopeEffects = this.settlement.getHopeDescription();
+  displayHopeEffect(currentHope) {
+    const hopeEffects = this.settlement.getHopeDescription(currentHope);
     hopeEffects.forEach(effect => {
       console.log(`- ${effect}`);
     });
@@ -113,7 +111,7 @@ class GameEngine {
         this.logEvent(`\n! ${settler.name} has died due to poor health!`);
         this.settlers.splice(i, 1);
         // Major hope loss when settler dies
-        const hopeMessage = this.settlement.updateHope(gameConfig.hope.hopeChange.settlerDeath, "settler death");
+        const hopeMessage = this.updateAllSettlersMorale(this.settlers, gameConfig.hope.hopeChange.settlerDeath, "settler death");
         if (hopeMessage) this.logEvent(hopeMessage);
         continue;
       }
@@ -123,11 +121,34 @@ class GameEngine {
         this.logEvent(`\n! ${settler.name} has left the settlement due to low morale!`);
         this.settlers.splice(i, 1);
         // Major hope loss when settler leaves
-        const hopeMessage = this.settlement.updateHope(gameConfig.hope.hopeChange.settlerAbandonment, "settler abandonment");
+        const hopeMessage = this.updateAllSettlersMorale(this.settlers, gameConfig.hope.hopeChange.settlerAbandonment, "settler abandonment");
         if (hopeMessage) this.logEvent(hopeMessage);
         continue;
       }
     }
+  }
+  
+  updateAllSettlersMorale(settlers, amount, reason, excludeSettler = null) {
+    const messages = [];
+    
+    settlers.forEach(settler => {
+      // Skip excluded settler if provided
+      if (excludeSettler && settler === excludeSettler) {
+        return;
+      }
+      
+      // Skip busy settlers if they're on expedition (optional, remove if you want to affect all)
+      if (settler.busy && typeof settler.busyUntil === 'number') {
+        return;
+      }
+      
+      const message = settler.updateMorale(amount, reason);
+      if (message) {
+        messages.push(message);
+      }
+    });
+    
+    return messages;
   }
 
   // Run a full day cycle

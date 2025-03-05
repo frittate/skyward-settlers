@@ -94,6 +94,22 @@ class Settler {
     return changes.length > 0 ? changes.join(", ") : null;
   }
 
+  // Update morale based on events
+  updateMorale(amount, reason) {
+    const oldMorale = this.morale;
+    this.morale = Math.max(0, Math.min(100, this.morale + amount));
+    
+    if (oldMorale !== this.morale) {
+      if (amount > 0) {
+        return `Morale increased by ${amount} (${reason}). ${this.name}'s morale is now ${this.morale}.`;
+      } else {
+        return `Morale decreased by ${Math.abs(amount)} (${reason}). ${this.name}'s morale is now ${this.morale}.`;
+      }
+    }
+    
+    return null;
+  }
+
   // Update recovery status
   updateRecovery() {
     if (this.recovering) {

@@ -139,7 +139,7 @@ class Settlement {
   }
   
   // Process daily upgrade progress
-  processShelterUpgrade() {
+  processShelterUpgrade(settlers) {
     if (!this.upgradeInProgress) {
       return null;
     }
@@ -161,9 +161,9 @@ class Settlement {
       // Give hope bonus for completing shelter tier
       let hopeBonus = 0;
       switch (this.shelterTier) {
-        case 1: hopeBonus = 5; break;  // Basic Tents
-        case 2: hopeBonus = 10; break; // Reinforced Shelters
-        case 3: hopeBonus = 15; break; // Permanent Settlement
+        case 1: hopeBonus = 3; break;  // Basic Tents
+        case 2: hopeBonus = 5; break; // Reinforced Shelters
+        case 3: hopeBonus = 8; break; // Permanent Settlement
       }
       
       const shelterName = this.getShelterName();
@@ -375,7 +375,7 @@ class Settlement {
   }
   
   // Update settlement hope based on events
-  updateHope(amount, reason) {
+  /* updateHope(amount, reason) {
     const oldHope = this.hope;
     this.hope = Math.max(0, Math.min(100, this.hope + amount));
     
@@ -388,7 +388,7 @@ class Settlement {
     }
     
     return null;
-  }
+  } */
   
   // Calculate visitor chance based on hope
   getVisitorChance() {
