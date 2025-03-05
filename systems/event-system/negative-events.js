@@ -30,19 +30,33 @@ const negativeEvents = [
     name: "Hostile Scavengers",
     description: "They encounter hostile scavengers who demand supplies.",
     effect: (settler, expedition) => {
-      // Lose some gathered resources
+      // Lose some gathered resources, but not all of any critical resource
       let lostType = '';
       let lostAmount = 0;
 
-      if (expedition.resources.food > 1) {
+      // Check food first - only take if they have more than 2
+      if (expedition.resources.food > 2) {
         lostAmount = Math.ceil(expedition.resources.food / 2);
+        // Never take more than 75% of the food
+        lostAmount = Math.min(lostAmount, Math.floor(expedition.resources.food * 0.75));
         expedition.resources.food -= lostAmount;
         lostType = 'food';
-      } else if (expedition.resources.water > 1) {
+      } 
+      // Then check water - only take if they have more than 2
+      else if (expedition.resources.water > 2) {
         lostAmount = Math.ceil(expedition.resources.water / 2);
+        // Never take more than 75% of the water
+        lostAmount = Math.min(lostAmount, Math.floor(expedition.resources.water * 0.75));
         expedition.resources.water -= lostAmount;
         lostType = 'water';
-      } else if (expedition.resources.meds > 0) {
+      } 
+      // Then check meds or materials
+      else if (expedition.resources.materials > 1) {
+        lostAmount = Math.ceil(expedition.resources.materials / 2);
+        expedition.resources.materials -= lostAmount;
+        lostType = 'materials';
+      }
+      else if (expedition.resources.meds > 0) {
         lostAmount = Math.min(1, expedition.resources.meds);
         expedition.resources.meds -= lostAmount;
         lostType = 'medicine';
@@ -51,6 +65,7 @@ const negativeEvents = [
       if (lostAmount > 0) {
         return `Hostile scavengers took ${lostAmount} ${lostType} from ${settler.name}!`;
       } else {
+        // If they don't have enough resources to steal, they attack instead
         const damage = randomInt(5, 15);
         settler.health = Math.max(0, settler.health - damage);
         return `Hostile scavengers attacked ${settler.name}, causing ${damage} damage (now ${settler.health})!`;

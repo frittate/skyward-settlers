@@ -217,7 +217,6 @@ class Settlement {
       // Give hope bonus for completing shelter tier
       const hopeBonus = this.shelterConfig[this.shelterTier].hopeBonus || 0;
       const shelterName = this.getShelterName();
-      const hopeMessage = this.updateHope(hopeBonus, `completed ${shelterName}`);
 
       return {
         complete: true,

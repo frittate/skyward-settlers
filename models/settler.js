@@ -52,6 +52,7 @@ class Settler {
   // Apply health/morale changes from resource consumption with hope mitigation
   updateWellbeing(hopeLevel = 0) {
     let changes = [];
+    
     const consumptionEffects = resourcesConfig.consumption;
 
     // Calculate hope mitigation factor (0-50% reduction in penalties)

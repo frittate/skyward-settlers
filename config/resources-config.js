@@ -15,10 +15,10 @@ module.exports = {
     
     // Resource chances by radius and type
     resourceChances: {
-      'food': { 'small': 1.0, 'medium': 1.0, 'large': 1.0 },
-      'water': { 'small': 1.0, 'medium': 1.0, 'large': 1.0 },
-      'meds': { 'small': 0.3, 'medium': 0.4, 'large': 0.6 },
-      'materials': { 'small': 0.3, 'medium': 0.2, 'large': 0.4 }
+      'food': { 'small': 1.0, 'medium': 1.15, 'large': 1.3 },
+      'water': { 'small': 1.0, 'medium': 1.15, 'large': 1.3 },
+      'meds': { 'small': 0.3, 'medium': 0.45, 'large': 0.6 },
+      'materials': { 'small': 0.3, 'medium': 0.4, 'large': 0.5 }
       // Add new resource types here with their chances by radius
     },
     

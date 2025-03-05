@@ -40,7 +40,7 @@ class MiddayPhase {
     // Update health and morale based on consumption
     console.log("\nHEALTH & MORALE UPDATES:");
     presentSettlers.forEach(settler => {
-      const changes = settler.updateWellbeing(this.game.settlement.hope);
+      const changes = settler.updateWellbeing(this.game.settlement.getHope(this.game.settlers));
       if (changes) {
         console.log(`- ${settler.name}: ${changes}`);
       } else {
@@ -62,9 +62,6 @@ class MiddayPhase {
     const presentCount = presentSettlers.length;
     console.log("\nAUTOMATIC DISTRIBUTION:");
 
-    let foodShortage = false;
-    let waterShortage = false;
-
     // Distribute food
     if (this.game.settlement.resources.food >= presentCount) {
       this.game.settlement.removeResource('food', presentCount);
@@ -74,7 +71,6 @@ class MiddayPhase {
       });
     } else {
       console.log(`- Not enough food for everyone! Only ${this.game.settlement.resources.food}/${presentCount} settlers will eat.`);
-      foodShortage = true;
 
       // Distribute available food (prioritize low health)
       let sortedSettlers = [...presentSettlers].sort((a, b) => a.health - b.health);
@@ -99,7 +95,6 @@ class MiddayPhase {
       });
     } else {
       console.log(`- Not enough water for everyone! Only ${this.game.settlement.resources.water}/${presentCount} settlers will drink.`);
-      waterShortage = true;
 
       // Distribute available water (prioritize low morale)
       let sortedSettlers = [...presentSettlers].sort((a, b) => a.morale - b.morale);
@@ -114,9 +109,6 @@ class MiddayPhase {
       }
       this.game.settlement.resources.water = 0;
     }
-
-    // Apply hope penalties for resource shortages
-    this.applyShortageEffects(foodShortage, waterShortage);
   }
 
   // Manually distribute resources to each settler
@@ -128,9 +120,6 @@ class MiddayPhase {
     
     // Distribute to each present settler
     for (const settler of presentSettlers) {
-      let foodShortage = false;
-      let waterShortage = false;
-
       // For building settlers, show their current task
       let settlerStatus = "";
       if (settler.busy) {
@@ -152,13 +141,11 @@ class MiddayPhase {
           console.log(`- ${settler.name} received food.`);
         } else {
           settler.daysWithoutFood++;
-          foodShortage = true;
           console.log(`- ${settler.name} went hungry.`);
         }
       } else {
         console.log("- No food remaining to distribute.");
         settler.daysWithoutFood++;
-        foodShortage = true;
       }
 
       // Water distribution
@@ -170,41 +157,17 @@ class MiddayPhase {
           console.log(`- ${settler.name} received water.`);
         } else {
           settler.daysWithoutWater++;
-          waterShortage = true;
           console.log(`- ${settler.name} went thirsty.`);
         }
       } else {
         console.log("- No water remaining to distribute.");
         settler.daysWithoutWater++;
-        waterShortage = true;
       }
-
-      // Apply hope penalties for resource shortages
-      this.applyShortageEffects(settler, foodShortage, waterShortage);
     }
 
     // Update remaining resources
     this.game.settlement.resources.food = remainingFood;
     this.game.settlement.resources.water = remainingWater;
-  }
-  
-  // Apply hope penalties for resource shortages
-  applyShortageEffects(settler, foodShortage, waterShortage) {
-    if (foodShortage) {
-      const hopeMessage = settler.updateMorale(
-        gameConfig.hope.hopeChange.foodShortage, 
-        "food shortage"
-      );
-      if (hopeMessage) console.log(hopeMessage);
-    }
-
-    if (waterShortage) {
-      const hopeMessage = settler.updateMorale(
-        gameConfig.hope.hopeChange.waterShortage, 
-        "water shortage"
-      );
-      if (hopeMessage) console.log(hopeMessage);
-    }
   }
 }
 
