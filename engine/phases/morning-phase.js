@@ -1,6 +1,7 @@
 // engine/phases/morning-phase.js
 const { printPhaseHeader } = require('../../utils/utils');
 const StatusDisplay = require('./status-display');
+const gameConfig = require('../../config/game-config');
 
 class MorningPhase {
   constructor(gameEngine) {
