@@ -1,46 +1,48 @@
 // models/settlement-infrastructure.js
+
 const { randomInt } = require('../utils/utils');
 const upgradesConfig = require('../config/upgrades-config');
 
 class SettlementInfrastructure {
   constructor() {
-    // Track built infrastructure by category and current level
     this.infrastructure = {
-      shelter: { level: 0 }, // Shelter starts at level 0 (Makeshift Camp)
-      food: { level: 0 },    // No food production initially
-      water: { level: 0 }    // No water collection initially
+      shelter: { level: 0 },
+      food: { level: 0 },
+      water: { level: 0 }
     };
     
-    // Track upgrades in progress
     this.upgradesInProgress = [];
-    
-    // Current resource production
     this.dailyProduction = {
       food: 0,
       water: 0
     };
   }
-  
-  // Get all available upgrade options based on current infrastructure
+
+  // Core Infrastructure Methods
+  getInfrastructureLevel(category) {
+    return this.infrastructure[category]?.level || 0;
+  }
+
+  updateInfrastructureLevel(category, level) {
+    if (!this.infrastructure[category]) {
+      this.infrastructure[category] = { level: 0 };
+    }
+    this.infrastructure[category].level = level;
+    this.calculateDailyProduction();
+  }
+
+  // Upgrade Management
   getAvailableUpgrades() {
     const available = [];
-    const config = upgradesConfig.upgrades;
     
-    // Check each upgrade category
-    for (const [category, categoryConfig] of Object.entries(config)) {
-      // Get current level for this category
+    for (const [category, categoryConfig] of Object.entries(upgradesConfig.upgrades)) {
       const currentLevel = this.getInfrastructureLevel(category);
-      
-      // Check if we can upgrade to the next level
       const nextLevel = currentLevel + 1;
-      
-      // Get the tier details for the next level
       const nextTier = categoryConfig.tiers.find(tier => tier.level === nextLevel);
       
-      // If a next tier exists, this is an available upgrade
       if (nextTier) {
         available.push({
-          category: category,
+          category,
           name: `${categoryConfig.name} (${nextTier.name})`,
           level: nextLevel,
           description: nextTier.description,
@@ -49,37 +51,36 @@ class SettlementInfrastructure {
           buildTime: nextTier.buildTime,
           production: nextTier.production,
           hopeBonus: nextTier.hopeBonus,
-          protection: nextTier.protection // For shelter upgrades
+          protection: nextTier.protection
         });
       }
     }
     
     return available;
   }
-  
-  // Start a new infrastructure upgrade
+
   startUpgrade(upgradeCategory, mechanics) {
-    // Get all available upgrades
-    const availableUpgrades = this.getAvailableUpgrades();
-    
-    // Find the selected upgrade by category
-    const selectedUpgrade = availableUpgrades.find(u => u.category === upgradeCategory);
-    
+    const selectedUpgrade = this.getAvailableUpgrades()
+      .find(u => u.category === upgradeCategory);
+
     if (!selectedUpgrade) {
       return {
         success: false,
         message: `Cannot upgrade ${upgradeCategory} - no further upgrades available.`
       };
     }
-    
-    // Calculate build time based on number of mechanics
-    const mechanicCount = Math.min(mechanics.length, 4); // Cap at 4 mechanics for calculation
+
+    if (this.hasUpgradeInProgress(upgradeCategory)) {
+      return {
+        success: false,
+        message: `Cannot start upgrade - ${upgradeCategory} already has an upgrade in progress.`
+      };
+    }
+
+    const mechanicCount = Math.min(mechanics.length, 4);
     const speedMultiplier = upgradesConfig.settings.mechanicSpeedBonus[mechanicCount] || 1.0;
-    
-    // Round down but ensure at least 1 day
     const adjustedBuildTime = Math.max(1, Math.floor(selectedUpgrade.buildTime / speedMultiplier));
-    
-    // Create the upgrade in progress
+
     const upgrade = {
       category: selectedUpgrade.category,
       name: selectedUpgrade.name,
@@ -92,170 +93,133 @@ class SettlementInfrastructure {
       hopeBonus: selectedUpgrade.hopeBonus,
       protection: selectedUpgrade.protection
     };
-    
-    // Add to upgrades in progress
+
     this.upgradesInProgress.push(upgrade);
-    
-    // Mark mechanics as busy
     mechanics.forEach(mechanic => {
       mechanic.busy = true;
-      mechanic.busyUntil = "infrastructure"; // Special marker for infrastructure duty
+      mechanic.busyUntil = "infrastructure";
     });
-    
+
     return {
       success: true,
       message: `Started upgrading to ${upgrade.name}. Will take ${upgrade.timeLeft} days to complete.`,
       mechanics: upgrade.mechanics,
-      adjustedBuildTime: adjustedBuildTime,
+      adjustedBuildTime,
       originalBuildTime: selectedUpgrade.buildTime
     };
   }
-  
-  // Process daily infrastructure upgrades
+
   processDailyUpgrades() {
     const completed = [];
     const continuing = [];
-    
-    // Process each upgrade in progress
+
     for (const upgrade of this.upgradesInProgress) {
       upgrade.timeLeft--;
-      
+
       if (upgrade.timeLeft <= 0) {
-        // Upgrade is complete
         completed.push(upgrade);
-        
-        // Update infrastructure level
         this.updateInfrastructureLevel(upgrade.category, upgrade.level);
       } else {
-        // Upgrade continues
         continuing.push(upgrade);
       }
     }
-    
-    // Update upgrades in progress
+
     this.upgradesInProgress = continuing;
-    
-    // Recalculate daily production after upgrades
     this.calculateDailyProduction();
-    
-    return {
-      completed: completed,
-      continuing: continuing
-    };
+
+    return { completed, continuing };
   }
-  
-  // Update infrastructure level
-  updateInfrastructureLevel(category, level) {
-    if (this.infrastructure[category]) {
-      this.infrastructure[category].level = level;
-    } else {
-      this.infrastructure[category] = { level: level };
-    }
-    
-    // Recalculate daily production
-    this.calculateDailyProduction();
-  }
-  
-  // Get current level of a specific infrastructure category
-  getInfrastructureLevel(category) {
-    return this.infrastructure[category] ? this.infrastructure[category].level : 0;
-  }
-  
-  // Calculate daily resource production
+
+  // Resource Production
   calculateDailyProduction() {
-    // Reset current production
     this.dailyProduction = {
       food: 0,
       water: 0
     };
-    
-    // Calculate for each infrastructure category
+
     for (const [category, info] of Object.entries(this.infrastructure)) {
       const config = upgradesConfig.upgrades[category];
-      if (!config) continue;
-      
-      // Skip if level is 0 (no infrastructure built)
-      if (info.level === 0) continue;
-      
-      // Get current tier details
+      if (!config || info.level === 0) continue;
+
       const tierDetails = config.tiers.find(t => t.level === info.level);
-      if (!tierDetails || !tierDetails.production) continue;
-      
-      // Determine which resource this produces
-      if (category === 'food' && tierDetails.production) {
-        // Use minimum production for the daily estimate
+      if (!tierDetails?.production) continue;
+
+      if (category === 'food') {
         this.dailyProduction.food += tierDetails.production.min;
-      } else if (category === 'water' && tierDetails.production) {
-        // Use minimum production for the daily estimate
+      } else if (category === 'water') {
         this.dailyProduction.water += tierDetails.production.min;
       }
     }
-    
+
     return this.dailyProduction;
   }
-  
-  // Generate daily resources based on infrastructure
+
   generateDailyResources() {
     const resources = {
       food: 0,
       water: 0
     };
-    
-    // Calculate for each infrastructure category
+
     for (const [category, info] of Object.entries(this.infrastructure)) {
       const config = upgradesConfig.upgrades[category];
-      if (!config) continue;
-      
-      // Skip if level is 0 (no infrastructure built)
-      if (info.level === 0) continue;
-      
-      // Get current tier details
+      if (!config || info.level === 0) continue;
+
       const tierDetails = config.tiers.find(t => t.level === info.level);
-      if (!tierDetails || !tierDetails.production) continue;
-      
-      // Generate random amount within range
-      if (category === 'food') {
-        const amount = randomInt(tierDetails.production.min, tierDetails.production.max);
-        resources.food += amount;
-      } else if (category === 'water') {
-        const amount = randomInt(tierDetails.production.min, tierDetails.production.max);
-        resources.water += amount;
+      if (!tierDetails?.production) continue;
+
+      if (category === 'food' || category === 'water') {
+        const amount = randomInt(
+          tierDetails.production.min, 
+          tierDetails.production.max
+        );
+        resources[category] += amount;
       }
     }
-    
+
     return resources;
   }
-  
-  // Get current infrastructure summary
+
+  // Status & Summary Methods
   getInfrastructureSummary() {
-    const summary = [];
-    
-    for (const [category, info] of Object.entries(this.infrastructure)) {
-      // Skip level 0 infrastructures (not built yet)
-      if (info.level === 0) continue;
-      
-      const config = upgradesConfig.upgrades[category];
-      if (!config) continue;
-      
-      // Get tier details
-      const tierDetails = config.tiers.find(t => t.level === info.level);
-      if (!tierDetails) continue;
-      
-      summary.push({
-        category: category,
-        name: tierDetails.name, // Just use the tier name directly
-        level: info.level,
-        icon: config.icon || (category === 'food' ? '🌱' : '💧'), // Default icons if none provided
-        description: tierDetails.description,
-        production: tierDetails.production,
-        protection: tierDetails.protection // For shelter
-      });
-    }
-    
-    return summary;
+    return Object.entries(this.infrastructure)
+      .filter(([_, info]) => info.level > 0)
+      .map(([category, info]) => {
+        const config = upgradesConfig.upgrades[category];
+        if (!config) return null;
+
+        const tierDetails = config.tiers.find(t => t.level === info.level);
+        if (!tierDetails) return null;
+
+        return {
+          category,
+          name: tierDetails.name,
+          level: info.level,
+          icon: config.icon || (category === 'food' ? '🌱' : '💧'),
+          description: tierDetails.description,
+          production: tierDetails.production,
+          protection: tierDetails.protection
+        };
+      })
+      .filter(Boolean);
   }
-  
-  // Get upgrades in progress summary
+
+  getShelterProtection() {
+    const shelterLevel = this.getInfrastructureLevel('shelter');
+    const shelterConfig = upgradesConfig.upgrades.shelter;
+
+    if (!shelterConfig?.tiers) return 0;
+
+    const tierDetails = shelterConfig.tiers.find(t => t.level === shelterLevel);
+    return tierDetails?.protection || 0;
+  }
+
+  getShelterName() {
+    const shelterLevel = this.getInfrastructureLevel('shelter');
+    const tier = upgradesConfig.upgrades.shelter.tiers
+      .find(t => t.level === shelterLevel);
+    return tier?.name || "Makeshift Camp";
+  }
+
   getUpgradesInProgressSummary() {
     return this.upgradesInProgress.map(upgrade => ({
       category: upgrade.category,
@@ -266,44 +230,9 @@ class SettlementInfrastructure {
       mechanics: upgrade.mechanics
     }));
   }
-  
-  // Get the protection level for the current shelter
-  getShelterProtection() {
-    const shelterLevel = this.getInfrastructureLevel('shelter');
-    const shelterConfig = upgradesConfig.upgrades.shelter;
-    
-    if (!shelterConfig || !shelterConfig.tiers) return 0;
-    
-    const tierDetails = shelterConfig.tiers.find(t => t.level === shelterLevel);
-    return tierDetails ? tierDetails.protection : 0;
-  }
-  
-  // Check if a category has a upgrade in progress
+
   hasUpgradeInProgress(category) {
     return this.upgradesInProgress.some(upgrade => upgrade.category === category);
-  }
-  
-  // Get max level for a category
-  getMaxLevel(category) {
-    const config = upgradesConfig.upgrades[category];
-    if (!config || !config.tiers) return 0;
-    
-    // Find the highest level tier
-    let maxLevel = 0;
-    for (const tier of config.tiers) {
-      if (tier.level > maxLevel) {
-        maxLevel = tier.level;
-      }
-    }
-    
-    return maxLevel;
-  }
-  
-  // Check if a category is at max level
-  isAtMaxLevel(category) {
-    const currentLevel = this.getInfrastructureLevel(category);
-    const maxLevel = this.getMaxLevel(category);
-    return currentLevel >= maxLevel;
   }
 }
 

@@ -1,61 +1,25 @@
-// EVENING PHASE - Modified to prepare for night effects instead of applying them
-
 // engine/phases/evening-phase.js
 const { printPhaseHeader } = require('../../utils/utils');
+const StatusDisplay = require('./status-display');
 
 class EveningPhase {
   constructor(gameEngine) {
     this.game = gameEngine;
+    this.statusDisplay = new StatusDisplay(gameEngine);
   }
 
   async execute() {
     printPhaseHeader("EVENING PHASE: DAY SUMMARY");
-
     console.log(`Day ${this.game.day} is complete.`);
 
-    // Instead of repeating all status information, just show a compact summary
-    // of changes from the day's activities
-    console.log("\nDAY SUMMARY:");
-    
-    // Summarize expedition status
-    const ongoingExpeditions = this.game.expeditions.length;
-    if (ongoingExpeditions > 0) {
-      console.log(`- ${ongoingExpeditions} active expedition${ongoingExpeditions > 1 ? 's' : ''}`);
-    }
-    
-    // Summarize infrastructure progress
-    // Note: Using getUpgradesInProgress instead of getUpgradesInProgressSummary
-    const upgradesInProgress = this.game.settlement.infrastructure.upgradesInProgress;
-    if (upgradesInProgress.length > 0) {
-      console.log(`- ${upgradesInProgress.length} infrastructure project${upgradesInProgress.length > 1 ? 's' : ''} in progress`);
-      upgradesInProgress.forEach(upgrade => {
-        console.log(`  ${upgrade.name}: ${upgrade.timeLeft}/${upgrade.originalTime} days remaining`);
-      });
-    }
-    
-    // Shelter upgrade summary
-    if (this.game.settlement.upgradeInProgress) {
-      const nextTier = this.game.settlement.shelterTier + 1;
-      const shelterName = this.game.settlement.shelterConfig[nextTier].name;
-      console.log(`- Building ${shelterName}: ${this.game.settlement.upgradeTimeLeft} days remaining`);
-    }
+    // Display end of day status
+    this.statusDisplay.displayResourceStatus();
+    this.statusDisplay.displaySettlerStatus();
+    this.statusDisplay.displayInfrastructureStatus();
+    this.statusDisplay.displayExpeditionStatus();
 
-    // Show any settlers with critical health/morale
-    const criticalSettlers = this.game.settlers.filter(s => s.health < 30 || s.morale < 30);
-    if (criticalSettlers.length > 0) {
-      console.log("\nWARNING: Settlers in critical condition:");
-      criticalSettlers.forEach(settler => {
-        let issues = [];
-        if (settler.health < 30) issues.push(`health critical (${settler.health})`);
-        if (settler.morale < 30) issues.push(`morale critical (${settler.morale})`);
-        console.log(`- ${settler.name}: ${issues.join(', ')}`);
-      });
-    }
-
-    // Display shelter status (but don't apply effects yet)
+    // Display night conditions and tomorrow's preview
     await this.displayNightConditions();
-
-    // Preview tomorrow's events
     await this.displayTomorrowPreview();
 
     // Advance day
@@ -69,12 +33,14 @@ class EveningPhase {
   async displayNightConditions() {
     console.log("\nNIGHT CONDITIONS:");
     
-    // Display shelter status
-    const shelterStatus = this.game.settlement.getShelterStatus();
-    console.log(`Shelter: ${shelterStatus.name} (${shelterStatus.protection}% protection)`);
+    // Get shelter information using the correct methods
+    const shelterName = this.game.settlement.infrastructure.getShelterName();
+    const protection = this.game.settlement.infrastructure.getShelterProtection();
+    
+    console.log(`Shelter: ${shelterName} (${protection}% protection)`);
     
     // Warn about shelter quality but don't apply effects yet
-    if (this.game.settlement.shelterTier === 0) {
+    if (protection === 0) {
       console.log("- The makeshift shelter provides little protection from the elements.");
       console.log("- Settlers may lose health overnight due to exposure.");
     } else {
@@ -85,7 +51,7 @@ class EveningPhase {
   async displayTomorrowPreview() {
     console.log("\nTOMORROW'S PREVIEW:");
 
-    // DON'T show who returns tomorrow - just that someone might
+    // Show returning expeditions count
     const returningSettlerCount = this.game.expeditions.filter(exp => 
       exp.returnDay === this.game.day + 1
     ).length;
@@ -134,6 +100,5 @@ class EveningPhase {
     }
   }
 }
-
 
 module.exports = EveningPhase;

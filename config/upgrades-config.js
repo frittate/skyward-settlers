@@ -69,6 +69,11 @@ module.exports = {
       icon: '',
       tiers: [
         {
+          level: 0,
+          name: "No Food Production",
+          description: "No food production system.",
+        },
+        {
           level: 1,
           name: "Patch of dirt",
           description: "A small patch of dirt to grow basic food and fungi.",
@@ -125,6 +130,11 @@ module.exports = {
       category: "water",
       prerequisites: [],  // No prerequisites
       tiers: [
+        {
+          level: 0,
+          name: "No Water Collection",
+          description: "No water collection system.",
+        },
         {
           level: 1,
           name: "Basic Water Collection",

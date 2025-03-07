@@ -89,7 +89,7 @@ class GameEngine {
   
     // Display Settlement Infrastructure
     console.log('\nINFRASTRUCTURE:');
-    const infrastructureStatus = this.settlement.displayInfrastructureStatus();
+    const infrastructureStatus = this.settlement.getInfrastructureStatus();
     infrastructureStatus.forEach(line => console.log(line));
   }
   
