@@ -4,6 +4,7 @@
 // engine/phases/morning-phase.js 
 const { printPhaseHeader, formatResourceList } = require('../../utils/utils');
 const gameConfig = require('../../config/game-config');
+const chalk = require('chalk');
 
 class MorningPhase {
   constructor(gameEngine) {
@@ -12,7 +13,7 @@ class MorningPhase {
 
   async execute() {
     printPhaseHeader("MORNING PHASE: RETURN & REPORT");
-    console.log(`Day ${this.game.day} has begun.`);
+    console.log(chalk.blue(`Day ${this.game.day} has begun.`));
 
 
     // Add daily hope for survival
@@ -30,7 +31,7 @@ class MorningPhase {
 
     const production = this.game.settlement.processDailyProduction();
     if (production.food > 0 || production.water > 0) {
-      console.log("\n=== INFRASTRUCTURE PRODUCTION ===");
+      console.log(chalk.bold("\n=== INFRASTRUCTURE PRODUCTION ==="));
       if (production.food > 0) {
         console.log(`Gardens produced ${production.food} food.`);
       }
@@ -78,7 +79,7 @@ class MorningPhase {
 
   // Apply nightly exposure effects to settlers (moved from evening phase)
   async applyNightlyEffects() {
-    console.log("\nOVERNIGHT EFFECTS:");
+    console.log(chalk.bold("\nOVERNIGHT EFFECTS:"));
     
     // Get settlers who are present (not on expeditions)
     const presentSettlers = this.game.settlers.filter(s => !s.busy);
@@ -94,7 +95,7 @@ class MorningPhase {
           console.log(`- ${effect}`);
         }
       } else {
-        console.log("- All settlers slept comfortably through the night.");
+        console.log(chalk.green("- All settlers slept comfortably through the night."));
       }
     } else {
       console.log(`- ${effects}`);
@@ -108,11 +109,11 @@ class MorningPhase {
     const upgradeResults = this.game.settlement.processInfrastructureUpgrades();
     
     if (upgradeResults.completed.length > 0 || upgradeResults.continuing.length > 0) {
-      console.log("\n=== INFRASTRUCTURE UPDATE ===");
+      console.log(chalk.bold("\n=== INFRASTRUCTURE UPDATE ==="));
       
       // Report on completed upgrades
       for (const completed of upgradeResults.completed) {
-        console.log(`🎉 ${completed.name} construction is complete!`);
+        console.log(chalk.green(`🎉 ${completed.name} construction is complete!`));
         
         // Free up the mechanics
         for (const mechanicName of completed.mechanics) {
@@ -159,10 +160,10 @@ class MorningPhase {
     const upgradeResult = this.game.settlement.processShelterUpgrade();
     
     if (upgradeResult) {
-      console.log("\n=== SHELTER UPDATE ===");
+      console.log(chalk.bold("\n=== SHELTER UPDATE ==="));
       
       if (upgradeResult.complete) {
-        console.log(`${upgradeResult.shelterName} construction is complete!`);
+        console.log(chalk.green(`${upgradeResult.shelterName} construction is complete!`));
         console.log(`Your settlement now has better protection from the elements.`);
         
         if (upgradeResult.hopeBonus) {
@@ -200,7 +201,7 @@ class MorningPhase {
     // Generate visitor
     const visitor = this.game.settlement.generateVisitor();
 
-    console.log("\n=== VISITOR ARRIVED ===");
+    console.log(chalk.bold("\n=== VISITOR ARRIVED ==="));
     console.log(`${visitor.name}, a ${visitor.role}, was attracted by your settlement's reputation!`);
     console.log(`Health: ${visitor.health}, Morale: ${visitor.morale}`);
 
@@ -273,7 +274,7 @@ class MorningPhase {
     );
 
     if (activeExpeditions.length > 0) {
-      console.log("\nEXPEDITION STATUS REPORTS:");
+      console.log(chalk.bold("\nEXPEDITION STATUS REPORTS:"));
       for (const expedition of activeExpeditions) {
         console.log(`- ${expedition.statusReport}`);
       }
@@ -285,7 +286,7 @@ class MorningPhase {
     const returnedExpeditions = this.game.expeditions.filter(exp => exp.returnDay === this.game.day);
 
     if (returnedExpeditions.length > 0) {
-      console.log("\nRETURNING EXPEDITIONS:");
+      console.log(chalk.bold("\nRETURNING EXPEDITIONS:"));
 
       for (const expedition of returnedExpeditions) {
         const settler = expedition.settler;
@@ -397,7 +398,7 @@ class MorningPhase {
 
   // Handle found survivor
   async handleFoundSurvivor(survivor) {
-    console.log("\n=== SURVIVOR FOUND ===");
+    console.log(chalk.bold("\n=== SURVIVOR FOUND ==="));
     console.log(`${survivor.name}, a ${survivor.role}, was found during the expedition!`);
     console.log(`Health: ${survivor.health}, Morale: ${survivor.morale}`);
 
@@ -460,7 +461,7 @@ class MorningPhase {
 
   // Display settler status changes
   async displaySettlerStatus() {
-    console.log("\nSETTLER STATUS:");
+    console.log(chalk.bold("\nSETTLER STATUS:"));
     this.game.settlers.forEach(settler => {
       if (settler.health < 50 && !settler.busy) {
         console.log(`- ${settler.name} is in poor health (${settler.health}/100).`);

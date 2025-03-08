@@ -7,6 +7,7 @@ const MiddayPhase = require('./phases/midday-phase');
 const AfternoonPhase = require('./phases/afternoon-phase');
 const EveningPhase = require('./phases/evening-phase');
 const gameConfig = require('../config/game-config');
+const chalk = require('chalk');
 
 // Main game class
 class GameEngine {
@@ -57,8 +58,8 @@ class GameEngine {
     console.log(message);
   }
   displayStatus() {
-    console.log(`\n--- DAY ${this.day} STATUS ---`);
-    console.log('\nSETTLERS:');
+    console.log(chalk.bold.blue(`\n--- DAY ${this.day} STATUS ---`));
+    console.log(chalk.bold('\nSETTLERS:'));
     this.settlers.forEach((settler, index) => {
       if (settler.busy) {
         let busyStatus;
@@ -76,7 +77,7 @@ class GameEngine {
       }
     });
   
-    console.log('\nRESOURCES:');
+    console.log(chalk.bold('\nRESOURCES:'));
     console.log(`Food: ${this.settlement.resources.food}`);
     console.log(`Water: ${this.settlement.resources.water}`);
     console.log(`Meds: ${this.settlement.resources.meds}`);
@@ -84,11 +85,11 @@ class GameEngine {
   
     // Display Settlement Hope - passing settlers to the settlement
     const currentHope = this.settlement.getHope(this.settlers);
-    console.log(`\nSETTLEMENT HOPE: ${currentHope}`);
+    console.log(chalk.bold(`\nSETTLEMENT HOPE: ${currentHope}`));
     this.displayHopeEffect(currentHope);
   
     // Display Settlement Infrastructure
-    console.log('\nINFRASTRUCTURE:');
+    console.log(chalk.bold('\nINFRASTRUCTURE:'));
     const infrastructureStatus = this.settlement.displayInfrastructureStatus();
     infrastructureStatus.forEach(line => console.log(line));
   }
@@ -161,7 +162,7 @@ class GameEngine {
     const expeditionSettlers = this.settlers.filter(s => s.busy);
 
     if (homeSettlers.length === 0 && expeditionSettlers.length > 0) {
-      console.log("\n! CRITICAL SITUATION: All settlers at the settlement have died or left!");
+      console.log(chalk.bold.red("\n! CRITICAL SITUATION: All settlers at the settlement have died or left!"));
       console.log(`There are still ${expeditionSettlers.length} settlers on expedition who may return.`);
     }
 
@@ -176,8 +177,8 @@ class GameEngine {
 
     // Check for game over - only if ALL settlers are gone
     if (this.settlers.length === 0) {
-      console.log("\n*** GAME OVER ***");
-      console.log("All settlers have died or left the settlement.");
+      console.log(chalk.bold.red("\n*** GAME OVER ***"));
+      console.log(chalk.red("All settlers have died or left the settlement."));
       return false;
     }
 
@@ -186,7 +187,7 @@ class GameEngine {
 
   // Main game loop
   async start() {
-    console.log("=== SKYWARD SETTLERS ===");
+    console.log(chalk.bgCyan.black("=== SKYWARD SETTLERS ==="));
     console.log("A post-apocalyptic rooftop settlement simulation");
     console.log("Core Loop Prototype\n");
 
@@ -199,7 +200,7 @@ class GameEngine {
       continueGame = await this.runDayCycle();
     }
 
-    console.log("\nThanks for playing Skyward Settlers!");
+    console.log(chalk.cyan("\nThanks for playing Skyward Settlers!"));
     this.rl.close();
   }
 }
