@@ -26,7 +26,7 @@ class MorningPhase {
       this.applyNightSurvivedHope()
     }
 
-    printPhaseHeader("PRODUCTION");
+    
     this.getInfrastructureProduction();
 
 
@@ -66,8 +66,8 @@ class MorningPhase {
   // Apply nightly exposure effects to settlers (moved from evening phase)
   applyNightlyEffects() {
      // Get settlers who are present (not on expeditions)
-     const presentSettlers = this.game.settlers.filter(s => s.busy !== 'shelter' || s.busyUntil !== 'infrastructure' );
-     
+     const presentSettlers = this.game.settlers.filter(s => (s.busy !== true) && !isNaN(s.busyUntil));
+
      console.log(this.game.settlement.applyNightlyExposure(presentSettlers))
   }
 
@@ -84,7 +84,9 @@ class MorningPhase {
   getInfrastructureProduction() {
     const production = this.game.settlement.processDailyProduction();
   
-    if (production.food > 0 || production.water > 0) {   
+    if (production.food > 0 || production.water > 0) {
+      printPhaseHeader("PRODUCTION");
+
       if (production.food > 0) {
         console.log(`${production.food} food could be harvested from the ${production.foodSource} today.`);
       }
