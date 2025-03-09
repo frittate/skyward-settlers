@@ -13,7 +13,7 @@ class GameEngine {
   constructor(rl, askQuestion) {
     this.rl = rl;
     this.askQuestion = askQuestion;
-    this.day = 1;
+    this.day = 2;
 
     // Create settlement
     this.settlement = new Settlement();
@@ -74,8 +74,8 @@ class GameEngine {
 
   displaySettlementStatus() {
     console.log('\nSETTLEMENT:');
-    console.log(`Hope: ${this.settlement.getHopeText(this.settlers)}`)
-    console.log(`Buildings: ${this.settlement.infrastructure.toString()}`)
+    console.log(`${this.settlement.getHopeText(this.settlers)}`)
+    console.log(`Buildings: \n${this.settlement.infrastructure.toString()}`)
   }
   
 
@@ -106,17 +106,12 @@ class GameEngine {
     }
   }
   
-  updateAllSettlersMorale(settlers, amount, reason, excludeSettler = null) {
+  updateAllSettlersMorale(amount, reason, excludeSettler = null) {
     const messages = [];
     
-    settlers.forEach(settler => {
+    this.settlers.forEach(settler => {
       // Skip excluded settler if provided
       if (excludeSettler && settler === excludeSettler) {
-        return;
-      }
-      
-      // Skip busy settlers if they're on expedition (optional, remove if you want to affect all)
-      if (settler.busy && typeof settler.busyUntil === 'number') {
         return;
       }
       
@@ -125,7 +120,7 @@ class GameEngine {
         messages.push(message);
       }
     });
-    
+
     return messages;
   }
 

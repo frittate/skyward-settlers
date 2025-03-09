@@ -7,6 +7,7 @@ class Settler {
     this.role = role;
     this.health = health;
     this.morale = morale;
+    this.activity = '';
     this.busy = false;
     this.busyUntil = 0;
     this.daysWithoutFood = 0;
@@ -106,6 +107,8 @@ class Settler {
       } else {
         return `Morale decreased by ${Math.abs(amount)} (${reason}). ${this.name}'s morale is now ${this.morale}.`;
       }
+    } else if (amount !== 0) {
+      return `${this.name}'s morale remains at ${this.morale} (${reason}).`;
     }
     
     return null;

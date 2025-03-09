@@ -13,27 +13,21 @@ class MorningPhase {
   async execute() {
     console.log(`Day ${this.game.day} has begun.`);
 
-    printPhaseHeader("SETTLEMENT STATUS");
+    printPhaseHeader("MORNING PHASE: SETTLEMENT STATUS");
+
     this.game.displaySettlerStatus()
     this.game.displayResourcesStatus()
     this.game.displaySettlementStatus()
 
-    printPhaseHeader("MORNING PHASE: RETURN & REPORT");
-
-
-    // Add daily hope for survival
     if (this.game.day > 1) {
-      // Apply overnight exposure effects first
-      await this.applyNightlyEffects();
-
-      const hopeMessage = this.game.updateAllSettlersMorale(
-        this.game.settlers,
-        gameConfig.hope.hopeChange.daySurvived, 
-        "another day survived"
-      );
-      if (hopeMessage) console.log("\n" + hopeMessage);
+      printPhaseHeader("MORNING PHASE: NIGHT EFFECTS");
+      this.applyNightlyEffects()
+      this.applyNightSurvivedHope()
     }
 
+
+    printPhaseHeader("MORNING PHASE: RETURN & REPORT");
+  
     const production = this.game.settlement.processDailyProduction();
     if (production.food > 0 || production.water > 0) {
       console.log("\n=== INFRASTRUCTURE PRODUCTION ===");
@@ -77,31 +71,21 @@ class MorningPhase {
   }
 
   // Apply nightly exposure effects to settlers (moved from evening phase)
-  async applyNightlyEffects() {
-    console.log("\nOVERNIGHT EFFECTS:");
-    
-    // Get settlers who are present (not on expeditions)
-    const presentSettlers = this.game.settlers.filter(s => !s.busy);
-    
-    // Apply nightly exposure effects based on shelter level
-    const effects = this.game.settlement.applyNightlyExposureEffects(presentSettlers);
-    
-    // Display effects
-    if (Array.isArray(effects)) {
-      if (effects.length > 0) {
-        console.log("Night Exposure Effects:");
-        for (const effect of effects) {
-          console.log(`- ${effect}`);
-        }
-      } else {
-        console.log("- All settlers slept comfortably through the night.");
-      }
-    } else {
-      console.log(`- ${effects}`);
+  applyNightlyEffects() {
+     // Get settlers who are present (not on expeditions)
+     const presentSettlers = this.game.settlers.filter(s => s.busy !== 'shelter' || s.busyUntil !== 'infrastructrue' );
+     
+     console.log(this.game.settlement.applyNightlyExposure(presentSettlers))
+  }
+
+  applyNightSurvivedHope() {
+    const hopeMessages = this.game.updateAllSettlersMorale(
+      gameConfig.hope.hopeChange.daySurvived, 
+      "another day survived"
+    );
+    if (hopeMessages) {
+      hopeMessages.map(m => console.log(m))
     }
-    
-    // Check settler critical status after night exposure
-    this.game.checkCriticalStatus();
   }
 
   async processInfrastructureUpgrades() {

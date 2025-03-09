@@ -7,7 +7,7 @@ class SettlementInfrastructure {
     // Track built infrastructure by category and current level
     this.infrastructure = {
       shelter: { level: 0 }, // Shelter starts at level 0 (Makeshift Camp)
-      food: { level: 0 },    // No food production initially
+      food: { level: 1 },    // No food production initially
       water: { level: 0 }    // No water collection initially
     };
     
@@ -22,7 +22,6 @@ class SettlementInfrastructure {
   }
 
   toString() {
-    // This assumes you have access to the upgrades configuration object
     let output = '';
     
     // Display shelter info
@@ -31,22 +30,30 @@ class SettlementInfrastructure {
     output += `Shelter - ${shelterConfig.name}: ${shelterConfig.description}\n`;
     
     // Display food info
-    const foodLevel = this.infrastructure.food.level;
-    if (foodLevel === 0) {
-      output += 'Food: No infrastructure\n';
-    } else {
-      const foodConfig = upgradesConfig.upgrades.food.tiers[foodLevel];
-      output += `Food - ${foodConfig.name}: ${foodConfig.description}\n`;
+  const foodLevel = this.infrastructure.food.level;
+  if (foodLevel === 0) {
+    output += 'Food: No infrastructure\n';
+  } else {
+    const foodConfig = upgradesConfig.upgrades.food.tiers[foodLevel];
+    let productionText = '';
+    if (foodConfig.production) {
+      productionText = ` (Produces between ${foodConfig.production.min} and ${foodConfig.production.max} food per day)`;
     }
-    
-    // Display water info
-    const waterLevel = this.infrastructure.water.level;
-    if (waterLevel === 0) {
-      output += 'Water: No infrastructure\n';
-    } else {
-      const waterConfig = upgradesConfig.upgrades.water.tiers[waterLevel];
-      output += `Water - ${waterConfig.name}: ${waterConfig.description}`;
+    output += `Food - ${foodConfig.name}: ${foodConfig.description}${productionText}\n`;
+  }
+  
+  // Display water info
+  const waterLevel = this.infrastructure.water.level;
+  if (waterLevel === 0) {
+    output += 'Water: No infrastructure\n';
+  } else {
+    const waterConfig = upgradesConfig.upgrades.water.tiers[waterLevel];
+    let productionText = '';
+    if (waterConfig.production) {
+      productionText = ` (Produces between ${waterConfig.production.min} and ${waterConfig.production.max} water per day)`;
     }
+    output += `Water - ${waterConfig.name}: ${waterConfig.description}${productionText}`;
+  }
     
     return output;
   }
