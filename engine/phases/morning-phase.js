@@ -11,22 +11,28 @@ class MorningPhase {
   }
 
   async execute() {
+    printPhaseHeader("MORNING PHASE");
+
     console.log(`Day ${this.game.day} has begun.`);
 
-    printPhaseHeader("MORNING PHASE: SETTLEMENT STATUS");
+    printPhaseHeader("SETTLEMENT STATUS");
 
     this.game.displaySettlerStatus()
     this.game.displayResourcesStatus()
     this.game.displaySettlementStatus()
 
     if (this.game.day > 1) {
-      printPhaseHeader("MORNING PHASE: NIGHT EFFECTS");
+      printPhaseHeader("NIGHT EFFECTS");
       this.applyNightlyEffects()
       this.applyNightSurvivedHope()
     }
 
+    printPhaseHeader("RETURN & REPORT");
 
-    printPhaseHeader("MORNING PHASE: RETURN & REPORT");
+
+
+
+    printPhaseHeader("RETURN & REPORT");
   
     const production = this.game.settlement.processDailyProduction();
     if (production.food > 0 || production.water > 0) {
