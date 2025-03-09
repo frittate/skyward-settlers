@@ -6,8 +6,8 @@ class SettlementInfrastructure {
   constructor() {
     // Track built infrastructure by category and current level
     this.infrastructure = {
-      shelter: { level: 1 }, // Shelter starts at level 0 (Makeshift Camp)
-      food: { level: 1 },    // No food production initially
+      shelter: { level: 0 }, // Shelter starts at level 0 (Makeshift Camp)
+      food: { level: 0 },    // No food production initially
       water: { level: 0 }    // No water collection initially
     };
 

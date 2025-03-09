@@ -103,9 +103,9 @@ class Settler {
     
     if (oldMorale !== this.morale) {
       if (amount > 0) {
-        return `Morale increased by ${amount} (${reason}). ${this.name}'s morale is now ${this.morale}.`;
+        return `${this.name}'s morale increased by ${amount} to ${this.morale} (${reason}). `;
       } else {
-        return `Morale decreased by ${Math.abs(amount)} (${reason}). ${this.name}'s morale is now ${this.morale}.`;
+        return `${this.name}'s morale decreased by ${Math.abs(amount)} to ${this.morale} (${reason}).`;
       }
     } else if (amount !== 0) {
       return `${this.name}'s morale remains at ${this.morale} (${reason}).`;

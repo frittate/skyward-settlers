@@ -1,4 +1,5 @@
 // engine/game-engine.js
+const { randomInt } = require('../utils/utils');
 const Settler = require('../models/settler');
 const EventSystem = require('../systems/event-system/event-system');
 const Settlement = require('../models/settlement');
@@ -13,7 +14,7 @@ class GameEngine {
   constructor(rl, askQuestion) {
     this.rl = rl;
     this.askQuestion = askQuestion;
-    this.day = 2;
+    this.day = 1;
 
     // Create settlement
     this.settlement = new Settlement();
@@ -93,7 +94,7 @@ class GameEngine {
         this.logEvent(`\n! ${settler.name} has died due to poor health!`);
         this.settlers.splice(i, 1);
         // Major hope loss when settler dies
-        const hopeMessage = this.updateAllSettlersMorale(this.settlers, gameConfig.hope.hopeChange.settlerDeath, "settler death");
+        const hopeMessage = this.updateAllSettlersMorale(gameConfig.hope.hopeChange.settlerDeath, "settler death");
         if (hopeMessage) this.logEvent(hopeMessage);
         continue;
       }
@@ -103,7 +104,7 @@ class GameEngine {
         this.logEvent(`\n! ${settler.name} has left the settlement due to low morale!`);
         this.settlers.splice(i, 1);
         // Major hope loss when settler leaves
-        const hopeMessage = this.updateAllSettlersMorale(this.settlers, gameConfig.hope.hopeChange.settlerAbandonment, "settler abandonment");
+        const hopeMessage = this.updateAllSettlersMorale(gameConfig.hope.hopeChange.settlerAbandonment, "settler abandonment");
         if (hopeMessage) this.logEvent(hopeMessage);
         continue;
       }
@@ -113,6 +114,12 @@ class GameEngine {
   updateAllSettlersMorale(amount, reason, excludeSettler = null) {
     const messages = [];
     
+    // Ensure amount is a valid number
+    if (typeof amount !== 'number' || isNaN(amount)) {
+      console.error('Invalid morale change amount:', amount);
+      return 'Error: Invalid morale change amount.';
+    }
+
     this.settlers.forEach(settler => {
       // Skip excluded settler if provided
       if (excludeSettler && settler === excludeSettler) {
@@ -125,7 +132,7 @@ class GameEngine {
       }
     });
 
-    return messages;
+    return messages.join('\n');
   }
 
   // Generate a random survivor/visitor

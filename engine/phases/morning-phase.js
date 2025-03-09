@@ -77,7 +77,7 @@ class MorningPhase {
       "another day survived"
     );
     if (hopeMessages) {
-      hopeMessages.map(m => console.log(m))
+      console.log(hopeMessages);
     }
   }
 
@@ -119,7 +119,6 @@ class MorningPhase {
         // Add hope bonus
         if (completed.hopeBonus) {
           const hopeMessage = this.game.updateAllSettlersMorale(
-            this.game.settlers,
             completed.hopeBonus, 
             `completed ${completed.name}`
           );
@@ -158,7 +157,7 @@ class MorningPhase {
         console.log(`Your settlement now has better protection from the elements.`);
         
         if (upgradeResult.hopeBonus) {
-          this.game.updateAllSettlersMorale(result.hopeBonus, `completed ${upgradeResult.shelterName}`)
+          this.game.updateAllSettlersMorale(upgradeResult.hopeBonus, `completed ${upgradeResult.shelterName}`)
 
           console.log(upgradeResult.hopeMessage);
         }
@@ -259,9 +258,6 @@ class MorningPhase {
     const totalResources = Object.values(expedition.resources).reduce((sum, amount) => sum + amount, 0);
     
     if (totalResources > 0) {
-      const moraleBoost = expedition.jackpotFind ? 25 : 15;
-      settler.morale = Math.min(100, settler.morale + moraleBoost);
-
       // Create a more detailed resource breakdown
       let resourceDetails = "";
       if (expedition.resources.food > 0) resourceDetails += `${expedition.resources.food} food, `;
@@ -275,28 +271,26 @@ class MorningPhase {
       // If we have no resources with values > 0, say "no resources"
       if (!resourceDetails) resourceDetails = "no resources";
 
-      let message = `- ${settler.name} has returned from the ${expedition.radius} radius with ${resourceDetails}. (+${moraleBoost} morale from successful expedition)`;
+      let message = `- ${settler.name} has returned from the ${expedition.radius} radius with ${resourceDetails}.`;
       
       if (expedition.jackpotFind) {
         message += " They found an exceptional cache of supplies!";
         
         // Use updateAllSettlersMorale for exceptional find
         const hopeMessages = this.game.updateAllSettlersMorale(
-          this.game.settlers,
           gameConfig.hope.hopeChange.exceptionalFind, 
           "exceptional resource find"
         );
         
-        if (hopeMessages) this.game.logEvent(hopeMessage);
+        if (hopeMessages) this.game.logEvent(hopeMessages);
       } else {
         // Use updateAllSettlersMorale for successful expedition
-        const hopeMessage = this.game.updateAllSettlersMorale(
-          this.game.settlers,
+        const hopeMessages = this.game.updateAllSettlersMorale(
           gameConfig.hope.hopeChange.successfulExpedition, 
           "successful expedition"
         );
         
-        if (hopeMessage) this.game.logEvent(hopeMessage);
+        if (hopeMessages) this.game.logEvent(hopeMessages);
       }
       
       message += ` They need ${expedition.recoverTime} days to recover.`;
@@ -307,7 +301,6 @@ class MorningPhase {
       
       // Use updateAllSettlersMorale for failed expedition
       const hopeMessage = this.game.updateAllSettlersMorale(
-        this.game.settlers,
         gameConfig.hope.hopeChange.failedExpedition, 
         "failed expedition"
       );
@@ -371,12 +364,11 @@ class MorningPhase {
         ? gameConfig.hope.hopeChange.rescuedSurvivor
         : gameConfig.hope.hopeChange.newSettler;
       const eventText = isFromExpedition ? "rescued survivor" : "new settler joined";
-      const hopeMessage = this.game.updateAllSettlersMorale(this.game.settlers, hopeChange, eventText);
+      const hopeMessage = this.game.updateAllSettlersMorale(hopeChange, eventText);
       if (hopeMessage) this.game.logEvent(hopeMessage);
     } else {
       this.game.logEvent(`You decided not to accept ${survivor.name} into the settlement.`);
       const hopeMessage = this.game.updateAllSettlersMorale(
-        this.game.settlers,
         gameConfig.hope.hopeChange.turnedAwaySurvivor,
         "turned away survivor"
       );
