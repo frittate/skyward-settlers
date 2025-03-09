@@ -379,6 +379,36 @@ class Settlement {
     return null;
   }
 
+  getHopeNew(settlers) {
+    if (!settlers?.length) return 50;
+
+    const avgMorale = settlers.reduce((sum, s) => sum + s.morale, 0) / settlers.length;
+    const cushionFactor = 10;
+    const normalizedDistance = Math.abs(avgMorale - 50) / 50;
+    const cushionAmount = cushionFactor * (1 - normalizedDistance);
+    
+    return Math.max(0, Math.min(100, Math.round(avgMorale + cushionAmount)));
+  }
+
+  getHopeText(settlers) {
+    const hope = this.getHopeNew(settlers)
+    let hopeText = `Hope is ${hope}. `
+    
+    if (hope >= 80) {
+      hopeText += "Your settlers are inspired and optimistic about their future.";
+    } else if (hope >= 60) {
+      hopeText += "Your settlement has a positive atmosphere.";
+    } else if (hope >= 40) {
+      hopeText += "The mood in the settlement is cautiously hopeful.";
+    } else if (hope >= 20) {
+      hopeText += "Doubt and concern are spreading in the settlement.";
+    } else {
+      hopeText += "The settlement feels bleak and desperate.";
+    }
+    
+    return hopeText;
+  }
+
   getHope(settlers) {
     // If there are no settlers, return a default value
     if (!settlers || settlers.length === 0) {
@@ -409,37 +439,6 @@ class Settlement {
   getVisitorChance(hope) {
     if (hope < 30) return 0;
     return Math.min(15, 5 + Math.floor(hope / 10));
-  }
-  
-  // Get hope description and effects
-  getHopeDescription(hope) {
-    const mitigationPercent = Math.min(50, Math.floor(hope / 2));
-    let hopeDescription;
-  
-    if (hope >= 80) {
-      hopeDescription = "Your settlers are inspired and optimistic about their future.";
-    } else if (hope >= 60) {
-      hopeDescription = "Your settlement has a positive atmosphere.";
-    } else if (hope >= 40) {
-      hopeDescription = "The mood in the settlement is cautiously hopeful.";
-    } else if (hope >= 20) {
-      hopeDescription = "Doubt and concern are spreading in the settlement.";
-    } else {
-      hopeDescription = "The settlement feels bleak and desperate.";
-    }
-  
-    const effects = [
-      hopeDescription,
-      `Reduces health/morale penalties by ${mitigationPercent}%`
-    ];
-  
-    // Display visitor chance if hope is high enough
-    if (hope >= 30) {
-      const visitorChance = this.getVisitorChance(hope);
-      effects.push(`${visitorChance}% daily chance of attracting visitors`);
-    }
-  
-    return effects;
   }
 
   // Generate a random survivor/visitor

@@ -16,7 +16,7 @@ module.exports = {
   // Upgrade types and their properties
   upgrades: {
     // Shelter upgrades - already implemented, included for reference
-    'shelter': {
+    shelter: {
       name: "Shelter",
       description: "Improves living conditions and protection.",
       icon: "🏕️",
@@ -36,9 +36,9 @@ module.exports = {
           name: "Basic Tents", 
           protection: 0.75,
           description: "A number of basic tents with improved protection.",
-          materialCost: 6,  // Reduced from 15 to 10
-          buildTime: 2,      // Reduced from 3 to 2
-          hopeBonus: 10      // Increased from 5 to 10
+          materialCost: 6,  
+          buildTime: 2,     
+          hopeBonus: 10      
         },
         // Tier 2: Reinforced Shelters
         {
@@ -47,8 +47,8 @@ module.exports = {
           description: "Shelters with reinforced walls and roofs.",
           protection: 0.9,
           materialCost: 12,
-          buildTime: 4,      // Reduced from 5 to 4
-          hopeBonus: 15      // Increased from 10 to 15
+          buildTime: 4,      
+          hopeBonus: 15      
         },
         // Tier 3: Permanent Settlement
         {
@@ -56,18 +56,23 @@ module.exports = {
           name: "Permanent Settlement",
           description: "A permanent settlement with strong protection.",
           protection: 1.0,
-          materialCost: 24,  // Reduced from 50 to 40
-          buildTime: 6,      // Reduced from 7 to 6
-          hopeBonus: 20      // Increased from 15 to 20
+          materialCost: 24,  
+          buildTime: 6,     
+          hopeBonus: 20      
         }
       ]
     },
-    'food': {
+    food: {
       name: "Food Production",
       description: "Upgrades to increase food production.",
       category: "food",
       icon: '',
       tiers: [
+        {
+          level: 0,
+          name: "No Food Production",
+          description: "No food production system.",
+        },
         {
           level: 1,
           name: "Patch of dirt",
@@ -118,13 +123,18 @@ module.exports = {
       }
       ]
     },
-    'water': {
+    water: {
       name: 'Water',
       description: "Upgrade your shelter to collect and store water.",
       icon: "💦",
       category: "water",
       prerequisites: [],  // No prerequisites
       tiers: [
+        {
+          level: 0,
+          name: "No Water Collection",
+          description: "No water collection system.",
+        },
         {
           level: 1,
           name: "Basic Water Collection",

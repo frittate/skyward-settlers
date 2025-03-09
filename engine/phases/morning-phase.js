@@ -11,8 +11,14 @@ class MorningPhase {
   }
 
   async execute() {
-    printPhaseHeader("MORNING PHASE: RETURN & REPORT");
     console.log(`Day ${this.game.day} has begun.`);
+
+    printPhaseHeader("SETTLEMENT STATUS");
+    this.game.displaySettlerStatus()
+    this.game.displayResourcesStatus()
+    this.game.displaySettlementStatus()
+
+    printPhaseHeader("MORNING PHASE: RETURN & REPORT");
 
 
     // Add daily hope for survival
@@ -66,12 +72,6 @@ class MorningPhase {
 
     // 2. Process returning expeditions
     await this.processReturningExpeditions();
-
-    // Display settler status changes
-    await this.displaySettlerStatus();
-
-    // Display current status after returns
-    this.game.displayStatus();
 
     return this.game.askQuestion("\nPress Enter to continue to Resource Distribution...");
   }
@@ -456,19 +456,6 @@ class MorningPhase {
       );
       if (hopeMessage) this.game.logEvent(hopeMessage);
     }
-  }
-
-  // Display settler status changes
-  async displaySettlerStatus() {
-    console.log("\nSETTLER STATUS:");
-    this.game.settlers.forEach(settler => {
-      if (settler.health < 50 && !settler.busy) {
-        console.log(`- ${settler.name} is in poor health (${settler.health}/100).`);
-      }
-      if (settler.morale < 50 && !settler.busy) {
-        console.log(`- ${settler.name} has low morale (${settler.morale}/100).`);
-      }
-    });
   }
 }
 

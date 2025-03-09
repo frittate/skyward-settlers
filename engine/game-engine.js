@@ -56,50 +56,28 @@ class GameEngine {
     });
     console.log(message);
   }
-  displayStatus() {
-    console.log(`\n--- DAY ${this.day} STATUS ---`);
+
+  displaySettlerStatus() {
     console.log('\nSETTLERS:');
     this.settlers.forEach((settler, index) => {
-      if (settler.busy) {
-        let busyStatus;
-        // Check what type of busy this is
-        if (settler.busyUntil === "shelter") {
-          busyStatus = "Building shelter";
-        } else if (settler.busyUntil === "infrastructure") {
-          busyStatus = "Building infrastructure";
-        } else {
-          busyStatus = "On expedition";
-        }
-        console.log(`${index + 1}. ${settler.name} (${settler.role}) - ${busyStatus}`);
-      } else {
-        console.log(`${index + 1}. ${settler.toString()}`);
-      }
+      console.log(settler.toString())
     });
-  
+  }
+
+  displayResourcesStatus() {
     console.log('\nRESOURCES:');
     console.log(`Food: ${this.settlement.resources.food}`);
     console.log(`Water: ${this.settlement.resources.water}`);
     console.log(`Meds: ${this.settlement.resources.meds}`);
     console.log(`Materials: ${this.settlement.resources.materials}`);
-  
-    // Display Settlement Hope - passing settlers to the settlement
-    const currentHope = this.settlement.getHope(this.settlers);
-    console.log(`\nSETTLEMENT HOPE: ${currentHope}`);
-    this.displayHopeEffect(currentHope);
-  
-    // Display Settlement Infrastructure
-    console.log('\nINFRASTRUCTURE:');
-    const infrastructureStatus = this.settlement.displayInfrastructureStatus();
-    infrastructureStatus.forEach(line => console.log(line));
+  }
+
+  displaySettlementStatus() {
+    console.log('\nSETTLEMENT:');
+    console.log(`Hope: ${this.settlement.getHopeText(this.settlers)}`)
+    console.log(`Buildings: ${this.settlement.infrastructure.toString()}`)
   }
   
-  // Display the effect of current hope level
-  displayHopeEffect(currentHope) {
-    const hopeEffects = this.settlement.getHopeDescription(currentHope);
-    hopeEffects.forEach(effect => {
-      console.log(`- ${effect}`);
-    });
-  }
 
   // Check for critical settler status (death, abandonment)
   checkCriticalStatus() {
@@ -189,9 +167,6 @@ class GameEngine {
     console.log("=== SKYWARD SETTLERS ===");
     console.log("A post-apocalyptic rooftop settlement simulation");
     console.log("Core Loop Prototype\n");
-
-    this.displayStatus();
-    await this.askQuestion("\nPress Enter to begin Day 1...");
 
     // Main game loop
     let continueGame = true;

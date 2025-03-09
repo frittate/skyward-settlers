@@ -159,16 +159,28 @@ class Settler {
 
   // Return a string representation of the settler
   toString() {
-    let status = `${this.name} (${this.role}) - Health: ${this.health}, Morale: ${this.morale}`;
-    if (this.wounded) {
-      status += " [WOUNDED]";
-    }
-    if (this.recovering) {
-      status += ` [RECOVERING - ${this.recoveryDaysLeft} days]`;
-    }
+    // Basic info
+    let status = `${this.name} (${this.role})`;
+    
+    // Health and morale with details if low
+    status += ` - Health 2: ${this.health}`;
+    if (this.health < 50) status += " [POOR]";
+    if (this.wounded) status += " [WOUNDED]";
+    if (this.recovering) status += ` [RECOVERING: ${this.recoveryDaysLeft}d]`;
+    
+    status += `, Morale: ${this.morale}`;
+    if (this.morale < 50) status += " [LOW]";
+    
+    // Busy status
     if (this.busy) {
-      status += ` - Busy until day ${this.busyUntil}`;
+      let activity = "";
+      if (this.busyUntil === "shelter") activity = "Building shelter";
+      else if (this.busyUntil === "infrastructure") activity = "Building infrastructure";
+      else activity = "On expedition";
+      
+      status += ` - BUSY: ${activity} until day ${this.busyUntil}`;
     }
+    
     return status;
   }
 }

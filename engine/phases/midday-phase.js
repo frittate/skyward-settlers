@@ -52,7 +52,7 @@ class MiddayPhase {
     this.game.checkCriticalStatus();
 
     // Display updated status
-    this.game.displayStatus();
+    // this.game.displayStatus();
 
     return this.game.askQuestion("\nPress Enter to continue to Task Assignment...");
   }

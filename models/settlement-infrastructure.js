@@ -20,9 +20,39 @@ class SettlementInfrastructure {
       water: 0
     };
   }
+
+  toString() {
+    // This assumes you have access to the upgrades configuration object
+    let output = '';
+    
+    // Display shelter info
+    const shelterLevel = this.infrastructure.shelter.level;
+    const shelterConfig = upgradesConfig.upgrades.shelter.tiers[shelterLevel];
+    output += `Shelter - ${shelterConfig.name}: ${shelterConfig.description}\n`;
+    
+    // Display food info
+    const foodLevel = this.infrastructure.food.level;
+    if (foodLevel === 0) {
+      output += 'Food: No infrastructure\n';
+    } else {
+      const foodConfig = upgradesConfig.upgrades.food.tiers[foodLevel];
+      output += `Food - ${foodConfig.name}: ${foodConfig.description}\n`;
+    }
+    
+    // Display water info
+    const waterLevel = this.infrastructure.water.level;
+    if (waterLevel === 0) {
+      output += 'Water: No infrastructure\n';
+    } else {
+      const waterConfig = upgradesConfig.upgrades.water.tiers[waterLevel];
+      output += `Water - ${waterConfig.name}: ${waterConfig.description}`;
+    }
+    
+    return output;
+  }
   
   // Get all available upgrade options based on current infrastructure
-  getAvailableUpgrades() {
+/*   getAvailableUpgrades() {
     const available = [];
     const config = upgradesConfig.upgrades;
     
@@ -304,7 +334,7 @@ class SettlementInfrastructure {
     const currentLevel = this.getInfrastructureLevel(category);
     const maxLevel = this.getMaxLevel(category);
     return currentLevel >= maxLevel;
-  }
+  } */
 }
 
 module.exports = SettlementInfrastructure;
