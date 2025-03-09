@@ -16,10 +16,9 @@ class MorningPhase {
     console.log(`Day ${this.game.day} has begun.`);
 
     printPhaseHeader("SETTLEMENT STATUS");
-
     this.game.displaySettlerStatus()
     this.game.displayResourcesStatus()
-    this.game.displaySettlementStatus()
+    this.game.displaySettlementStatus()    
 
     if (this.game.day > 1) {
       printPhaseHeader("NIGHT EFFECTS");
@@ -27,31 +26,23 @@ class MorningPhase {
       this.applyNightSurvivedHope()
     }
 
-    printPhaseHeader("RETURN & REPORT");
+    printPhaseHeader("PRODUCTION");
+    this.getInfrastructureProduction();
 
 
-
-
-    printPhaseHeader("RETURN & REPORT");
-  
-    const production = this.game.settlement.processDailyProduction();
-    if (production.food > 0 || production.water > 0) {
-      console.log("\n=== INFRASTRUCTURE PRODUCTION ===");
-      if (production.food > 0) {
-        console.log(`Gardens produced ${production.food} food.`);
-      }
-      if (production.water > 0) {
-        console.log(`Water collectors gathered ${production.water} water.`);
-      }
-    }
-
-    await this.processInfrastructureUpgrades();
-
-    // Check for shelter upgrade progress
-    await this.processShelterUpgrade();
+    printPhaseHeader("RETURNING EXPEDITIONS");
+    await this.processReturningExpeditions();
+    
 
     // Check for random visitors based on hope
-    await this.checkForVisitors();
+    await this.checkForSurvivors();
+
+    // await this.processInfrastructureUpgrades();
+
+    // Check for shelter upgrade progress
+    // await this.processShelterUpgrade();
+
+  
 
     // Track consecutive days with sufficient resources
     const stabilityMessage = this.game.settlement.trackResourceStability(this.game.settlers);
@@ -67,11 +58,7 @@ class MorningPhase {
       }
     });
 
-    // 1. Check for expedition status reports
-    await this.processStatusReports();
-
-    // 2. Process returning expeditions
-    await this.processReturningExpeditions();
+ 
 
     return this.game.askQuestion("\nPress Enter to continue to Resource Distribution...");
   }
@@ -79,7 +66,7 @@ class MorningPhase {
   // Apply nightly exposure effects to settlers (moved from evening phase)
   applyNightlyEffects() {
      // Get settlers who are present (not on expeditions)
-     const presentSettlers = this.game.settlers.filter(s => s.busy !== 'shelter' || s.busyUntil !== 'infrastructrue' );
+     const presentSettlers = this.game.settlers.filter(s => s.busy !== 'shelter' || s.busyUntil !== 'infrastructure' );
      
      console.log(this.game.settlement.applyNightlyExposure(presentSettlers))
   }
@@ -93,6 +80,21 @@ class MorningPhase {
       hopeMessages.map(m => console.log(m))
     }
   }
+
+  getInfrastructureProduction() {
+    const production = this.game.settlement.processDailyProduction();
+  
+    if (production.food > 0 || production.water > 0) {   
+      if (production.food > 0) {
+        console.log(`${production.food} food could be harvested from the ${production.foodSource} today.`);
+      }
+      
+      if (production.water > 0) {
+        console.log(`${production.water} water could be gathered from the ${production.waterSource} today.`);
+      }
+    }
+  }
+  
 
   async processInfrastructureUpgrades() {
     const upgradeResults = this.game.settlement.processInfrastructureUpgrades();
@@ -177,84 +179,13 @@ class MorningPhase {
   }
 
   // Check for random visitor appearance based on hope
-  async checkForVisitors() {
-    const visitorChance = this.game.settlement.getVisitorChance();
-
-    if (visitorChance > 0 && Math.random() * 100 < visitorChance) {
-      await this.handleVisitor();
+  async checkForSurvivors() {
+    const chance = this.game.settlement.getVisitorChance();
+    if (chance > 0 && Math.random() * 100 < chance) {
+      await this.handleSurvivor(false);
     }
   }
 
-  // Generate and handle a random visitor for the settlement
-  async handleVisitor() {
-    // Generate visitor
-    const visitor = this.game.settlement.generateVisitor();
-
-    console.log("\n=== VISITOR ARRIVED ===");
-    console.log(`${visitor.name}, a ${visitor.role}, was attracted by your settlement's reputation!`);
-    console.log(`Health: ${visitor.health}, Morale: ${visitor.morale}`);
-
-    // Show what resources the visitor brings
-    const giftString = formatResourceList(visitor.gift);
-    if (giftString) {
-      console.log(`They're offering to share their remaining supplies: ${giftString}`);
-    }
-
-    if (visitor.role === 'Medic') {
-      console.log("A medic would allow you to heal wounded settlers and improve health!");
-    } else if (visitor.role === 'Mechanic') {
-      console.log("A mechanic would allow you to build structures once you have materials!");
-    }
-
-    // Ask if player wants to accept the visitor
-    const acceptVisitor = await this.game.askQuestion("Do you want to accept this visitor into your settlement? (y/n): ");
-
-    if (acceptVisitor.toLowerCase() === 'y') {
-      // Add the visitor to the settlement
-      const Settler = require('../../models/settler');
-      const newSettler = new Settler(visitor.name, visitor.role, visitor.health, visitor.morale);
-      this.game.settlers.push(newSettler);
-
-      // Add their gift to resources
-      for (const [resource, amount] of Object.entries(visitor.gift)) {
-        if (amount > 0) {
-          this.game.settlement.addResource(resource, amount);
-        }
-      }
-
-      this.game.logEvent(`${visitor.name} (${visitor.role}) has joined the settlement!`);
-      if (giftString) {
-        this.game.logEvent(`${visitor.name} contributed ${giftString} to the community supplies.`);
-      }
-
-      // Special message for medic
-      if (visitor.role === 'Medic') {
-        this.game.logEvent("You now have a medic who can heal wounded settlers!");
-      }
-      
-      // Special message for mechanic
-      if (visitor.role === 'Mechanic') {
-        this.game.logEvent("You now have a mechanic who can build and upgrade shelter!");
-      }
-
-      // Hope boost for new settler
-      const hopeMessage = this.game.updateAllSettlersMorale(
-        this.game.settlers,
-        gameConfig.hope.hopeChange.newSettler, 
-        "new settler joined"
-      );
-      if (hopeMessage) this.game.logEvent(hopeMessage);
-    } else {
-      this.game.logEvent(`You decided not to accept ${visitor.name} into the settlement.`);
-      // Small hope penalty for turning someone away
-      const hopeMessage = this.game.updateAllSettlersMorale(
-        this.game.settlers,
-        gameConfig.hope.hopeChange.turnedAwaySurvivor, 
-        "turned away visitor"
-      );
-      if (hopeMessage) this.game.logEvent(hopeMessage);
-    }
-  }
 
   // Process expedition status reports
   async processStatusReports() {
@@ -300,7 +231,7 @@ class MorningPhase {
 
         // Check if they found a survivor
         if (expedition.foundSurvivor && expedition.survivor) {
-          await this.handleFoundSurvivor(expedition.survivor);
+          await this.handleSurvivor(true);
         }
 
         // Report expedition events
@@ -316,7 +247,7 @@ class MorningPhase {
       // Remove processed expeditions
       this.game.expeditions = this.game.expeditions.filter(exp => exp.returnDay !== this.game.day);
     } else {
-      console.log("\nNo expeditions returning today.");
+      console.log("No expeditions returning today.");
     }
   }
 
@@ -350,13 +281,13 @@ class MorningPhase {
         message += " They found an exceptional cache of supplies!";
         
         // Use updateAllSettlersMorale for exceptional find
-        const hopeMessage = this.game.updateAllSettlersMorale(
+        const hopeMessages = this.game.updateAllSettlersMorale(
           this.game.settlers,
           gameConfig.hope.hopeChange.exceptionalFind, 
           "exceptional resource find"
         );
         
-        if (hopeMessage) this.game.logEvent(hopeMessage);
+        if (hopeMessages) this.game.logEvent(hopeMessage);
       } else {
         // Use updateAllSettlersMorale for successful expedition
         const hopeMessage = this.game.updateAllSettlersMorale(
@@ -386,67 +317,73 @@ class MorningPhase {
   }
 
   // Handle found survivor
-  async handleFoundSurvivor(survivor) {
-    console.log("\n=== SURVIVOR FOUND ===");
-    console.log(`${survivor.name}, a ${survivor.role}, was found during the expedition!`);
+  async handleSurvivor(isFromExpedition) {
+    // Always generate the survivor inside this function.
+    // (Assuming generateSurvivor() is a unified method for generating survivors.)
+    const survivor = this.game.generateSurvivor();
+  
+    // Determine messages based on how the survivor arrived.
+    const status = isFromExpedition ? 'FOUND' : 'ARRIVED';
+    const arrivalMsg = isFromExpedition ? 'found on an expedition' : 'came on their own';
+  
+    console.log(`\n=== SURVIVOR ${status} ===`);
+    console.log(`${survivor.name}, a ${survivor.role}, was ${arrivalMsg}!`);
     console.log(`Health: ${survivor.health}, Morale: ${survivor.morale}`);
-
-    // Show what resources the survivor brings
+  
     const giftString = formatResourceList(survivor.gift);
     if (giftString) {
       console.log(`They're offering to share their remaining supplies: ${giftString}`);
     }
-
+  
     if (survivor.role === 'Medic') {
-      console.log("A medic would allow you to heal wounded settlers and improve health!");
+      console.log("A medic can heal wounded settlers and boost overall health!");
     } else if (survivor.role === 'Mechanic') {
-      console.log("A mechanic would allow you to build structures once you have materials!");
+      console.log("A mechanic helps you build and upgrade structures when materials are available!");
     }
-
-    // Ask if player wants to accept the survivor
-    const acceptSurvivor = await this.game.askQuestion("Do you want to accept this survivor into your settlement? (y/n): ");
-
-    if (acceptSurvivor.toLowerCase() === 'y') {
-      // Add the survivor to the settlement
+  
+    // Ask if the player wants to accept the survivor.
+    const accept = await this.game.askQuestion(`Do you want to accept ${survivor.name} into your settlement? (y/n): `);
+    if (accept.toLowerCase() === 'y') {
       const Settler = require('../../models/settler');
       const newSettler = new Settler(survivor.name, survivor.role, survivor.health, survivor.morale);
       this.game.settlers.push(newSettler);
-
-      // Add their gift to resources
+  
+      // Add any gifts to the settlement's resources.
       for (const [resource, amount] of Object.entries(survivor.gift)) {
         if (amount > 0) {
           this.game.settlement.addResource(resource, amount);
         }
       }
-
+  
       this.game.logEvent(`${survivor.name} (${survivor.role}) has joined the settlement!`);
       if (giftString) {
         this.game.logEvent(`${survivor.name} contributed ${giftString} to the community supplies.`);
       }
-
-      // Special message for medic
       if (survivor.role === 'Medic') {
         this.game.logEvent("You now have a medic who can heal wounded settlers!");
       }
-
-      // Hope boost for new survivor
-      const hopeMessage = this.game.updateAllSettlersMorale(
-        this.game.settlers,
-        gameConfig.hope.hopeChange.rescuedSurvivor, 
-        "rescued survivor"
-      );
+      if (survivor.role === 'Mechanic') {
+        this.game.logEvent("You now have a mechanic who can build and upgrade shelter!");
+      }
+  
+      // Update hope based on arrival type.
+      const hopeChange = isFromExpedition
+        ? gameConfig.hope.hopeChange.rescuedSurvivor
+        : gameConfig.hope.hopeChange.newSettler;
+      const eventText = isFromExpedition ? "rescued survivor" : "new settler joined";
+      const hopeMessage = this.game.updateAllSettlersMorale(this.game.settlers, hopeChange, eventText);
       if (hopeMessage) this.game.logEvent(hopeMessage);
     } else {
       this.game.logEvent(`You decided not to accept ${survivor.name} into the settlement.`);
-      // Small hope penalty for turning someone away
       const hopeMessage = this.game.updateAllSettlersMorale(
         this.game.settlers,
-        gameConfig.hope.hopeChange.turnedAwaySurvivor, 
+        gameConfig.hope.hopeChange.turnedAwaySurvivor,
         "turned away survivor"
       );
       if (hopeMessage) this.game.logEvent(hopeMessage);
     }
   }
+  
 }
 
 module.exports = MorningPhase;

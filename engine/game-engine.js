@@ -25,11 +25,11 @@ class GameEngine {
       selectedNames.push(availableNames.splice(randomIndex, 1)[0]);
     }
 
-    // Initialize starter settlers with random names
+    // Initialize starter settlers with random health and hope
     this.settlers = [
-      new Settler(selectedNames[0], 'Generalist', 100, 100),
-      new Settler(selectedNames[1], 'Generalist', 100, 100),
-      new Settler(selectedNames[2], 'Mechanic', 40, 80, true) // Third settler starts wounded
+      new Settler(selectedNames[0], 'Generalist', this.getRandomHealth(), 85),
+      new Settler(selectedNames[1], 'Generalist', this.getRandomHealth(), 85),
+      new Settler(selectedNames[2], 'Mechanic', this.getRandomHealth(), 85)
     ];
     
     this.expeditions = []; // Track ongoing expeditions
@@ -38,6 +38,10 @@ class GameEngine {
     
     // Initialize game phases
     this.initializePhases();
+  }
+
+  getRandomHealth() {
+    return Math.floor(Math.random() * (95 - 70 + 1)) + 70;
   }
   
   // Initialize game phases
@@ -124,6 +128,41 @@ class GameEngine {
     return messages;
   }
 
+  // Generate a random survivor/visitor
+  generateSurvivor() {
+    // Random attributes for the survivor
+    const health = randomInt(40, 80);
+    const morale = randomInt(50, 90);
+  
+    const roleChances = gameConfig.survivorRoleChances || { Medic: 0.4, Generalist: 0.4, Mechanic: 0.2 };
+  
+    // Generate a weighted random role.
+    const totalChance = Object.values(roleChances).reduce((sum, chance) => sum + chance, 0);
+    const roleRoll = Math.random() * totalChance;
+    let cumulative = 0;
+    let role = 'Generalist'; // default fallback
+  
+    for (const [roleName, chance] of Object.entries(roleChances)) {
+      cumulative += chance;
+      if (roleRoll < cumulative) {
+        role = roleName;
+        break;
+      }
+    }
+  
+    // Pick a random name from the config
+    const name = gameConfig.survivorNames[Math.floor(Math.random() * gameConfig.survivorNames.length)];
+  
+    // Generate a random gift (a small resource bonus)
+    const gift = {
+      food: Math.random() < 0.7 ? randomInt(1, 2) : 0,
+      water: Math.random() < 0.7 ? randomInt(1, 2) : 0,
+      meds: role === 'Medic' ? 1 : (Math.random() < 0.3 ? 1 : 0), // Medics always bring 1 medicine
+      materials: Math.random() < 0.4 ? randomInt(1, 3) : 0  // Sometimes bring materials
+    };
+  
+    return { name, role, health, morale, gift };
+  }
   // Run a full day cycle
   async runDayCycle() {
     // Phase 1: Morning - Returns and reports
@@ -161,7 +200,6 @@ class GameEngine {
   async start() {
     console.log("=== SKYWARD SETTLERS ===");
     console.log("A post-apocalyptic rooftop settlement simulation");
-    console.log("Core Loop Prototype\n");
 
     // Main game loop
     let continueGame = true;

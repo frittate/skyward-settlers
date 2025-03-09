@@ -75,7 +75,7 @@ module.exports = {
         },
         {
           level: 1,
-          name: "Patch of dirt",
+          name: "Patch of Dirt",
           description: "A small patch of dirt to grow basic food and fungi.",
           materialCost: 5,
           buildTime: 3,
@@ -137,7 +137,7 @@ module.exports = {
         },
         {
           level: 1,
-          name: "Basic Water Collection",
+          name: "Leaky Buckets",
           description: "Simple buckets to collect and store water.",
           materialCost: 5,
           buildTime: 2,
@@ -149,7 +149,7 @@ module.exports = {
         },
         {
           level: 2,
-          name: "Water Tank",
+          name: "Small Water Tank",
           description: "Tanks to store more water.",
           materialCost: 10,
           buildTime: 3,

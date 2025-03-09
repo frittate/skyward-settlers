@@ -65,9 +65,8 @@ class Settlement {
   }
 
   processDailyProduction() {
-    // Generate resources from infrastructure
     const production = this.infrastructure.generateDailyResources();
-    
+  
     // Add resources to settlement
     for (const [resource, amount] of Object.entries(production)) {
       if (amount > 0) {
@@ -272,7 +271,7 @@ class Settlement {
     
     settlers.forEach(settler => {
       settler.health = Math.max(0, settler.health - healthPenalty);
-      effectsMessage += `${settler.name} lost ${healthPenalty} health from sleeping exposed to the elements.\n`;
+      effectsMessage += `${settler.name} lost ${healthPenalty} health from sleeping exposed to the elements. Now at ${settler.health}. \n`;
     });
     
     return effectsMessage.trim();
@@ -441,39 +440,6 @@ class Settlement {
   getVisitorChance(hope) {
     if (hope < 30) return 0;
     return Math.min(15, 5 + Math.floor(hope / 10));
-  }
-
-  // Generate a random survivor/visitor
-  generateVisitor(isMedic = false) {
-    // Random visitor attributes
-    const health = randomInt(40, 80);
-    const morale = randomInt(50, 90);
-
-    // Determine role with weighted probability
-    const roleRoll = Math.random();
-    let role;
-
-    if (isMedic) {
-      role = 'Medic';
-    } else if (roleRoll < 0.60) {
-      role = 'Generalist';
-    } else if (roleRoll < 0.90) {
-      role = 'Mechanic';
-    } else {
-      role = 'Medic';
-    }
-
-    const name = gameConfig.survivorNames[Math.floor(Math.random() * gameConfig.survivorNames.length)];
-
-    // Random gift (small amount of resources they bring)
-    const gift = {
-      food: Math.random() < 0.7 ? randomInt(1, 2) : 0,
-      water: Math.random() < 0.7 ? randomInt(1, 2) : 0,
-      meds: role === 'Medic' ? 1 : (Math.random() < 0.3 ? 1 : 0),  // Medics always bring 1 medicine
-      materials: Math.random() < 0.4 ? randomInt(1, 3) : 0  // Sometimes bring materials
-    };
-
-    return { name, role, health, morale, gift };
   }
 
     // Updated displayInfrastructureStatus method for Settlement class

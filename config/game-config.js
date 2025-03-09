@@ -129,5 +129,11 @@ module.exports = {
     'Skyler', 'Dakota', 'Kendall', 'Parker', 'Hayden', 'Finley', 'Sam'
   ],
 
+  survivorRoleChances: {
+    Medic: 0.4,
+    Generalist: 0.2,
+    Mechanic: 0.2
+  },
+
   dailySurvivalMoraleBoost: 2
 };
