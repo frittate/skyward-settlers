@@ -42,7 +42,7 @@ class GameEngine {
     this.settlers.forEach((settler, index) => {
       if (settler.busy) {
         // Don't show health/morale for settlers on expedition
-        console.log(`${index + 1}. ${settler.name} (${settler.role}) - On expedition until day ${settler.busyUntil}`);
+        console.log(`${index + 1}. ${settler.name} (${settler.role}) - On expedition.`);
       } else {
         console.log(`${index + 1}. ${settler.toString()}`);
       }

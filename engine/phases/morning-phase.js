@@ -25,24 +25,7 @@ class MorningPhase {
       this.applyNightlyEffects()
       this.applyNightSurvivedHope()
     }
-    
-    this.getInfrastructureProduction();
 
-    printPhaseHeader("RETURNING EXPEDITIONS");
-    await this.processReturningExpeditions();
-    
-    // Check for random visitors based on hope
-    await this.checkForSurvivors();
-
-    // await this.processInfrastructureUpgrades();
-
-  
-
-    // Track consecutive days with sufficient resources
-    const stabilityMessage = this.game.settlement.trackResourceStability(this.game.settlers);
-    if (stabilityMessage) {
-      console.log("\n" + stabilityMessage);
-    }
 
     // Update recovery status for all settlers
     this.game.settlers.forEach(settler => {
@@ -51,8 +34,25 @@ class MorningPhase {
         console.log(recoveryMessage);
       }
     });
+    
+    // Get output of buildings
+    this.getInfrastructureProduction();
 
- 
+    // Process returning expeditions
+    printPhaseHeader("RETURNING EXPEDITIONS");
+    await this.processReturningExpeditions();
+    
+    // Check for random visitors based on hope
+    await this.checkForSurvivors();
+
+    // Show buildings that are being built
+    await this.getCurrentInfrastructureProgress();
+
+    // Track consecutive days with sufficient resources
+    const stabilityMessage = this.game.settlement.trackResourceStability(this.game.settlers);
+    if (stabilityMessage) {
+      console.log("\n" + stabilityMessage);
+    }
 
     return this.game.askQuestion("\nPress Enter to continue to Resource Distribution...");
   }
@@ -91,7 +91,7 @@ class MorningPhase {
     }
   }
   
-  async processInfrastructureUpgrades() {
+  async getCurrentInfrastructureProgress() {
     const upgradeResults = this.game.settlement.processInfrastructureUpgrades();
     
     if (upgradeResults.completed.length > 0 || upgradeResults.continuing.length > 0) {
@@ -240,11 +240,11 @@ class MorningPhase {
         message += " They found an exceptional cache of supplies!"; 
       }
       
-      message += ` They need ${expedition.recoverTime} days to recover.`;
+      message += ` They need ${expedition.recoverTime} day(s) to recover.`;
       this.game.logEvent(message);
     } else {
       // Should rarely happen with our updated resource generation, but handle it just in case
-      this.game.logEvent(`- ${settler.name} has returned from the ${expedition.radius} radius with no resources. The expedition was a failure. They need ${expedition.recoverTime} days to recover.`);   
+      this.game.logEvent(`- ${settler.name} has returned from the ${expedition.radius} radius with no resources. The expedition was a failure. They need ${expedition.recoverTime} day(s) to recover.`);   
     }
   }
 
@@ -314,7 +314,6 @@ class MorningPhase {
       if (hopeMessage) this.game.logEvent(hopeMessage);
     }
   }
-  
 }
 
 module.exports = MorningPhase;

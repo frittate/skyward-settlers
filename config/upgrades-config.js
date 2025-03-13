@@ -26,7 +26,7 @@ module.exports = {
         {
           level: 0,
           name: "Makeshift Camp",
-          description: "A temporary shelter with minimal protection.",
+          description: "A small fire and some sleeping bags, providing almost no protection.",
           protection: 0.5,
           materialCost: 0
         },
@@ -48,7 +48,7 @@ module.exports = {
           protection: 0.9,
           materialCost: 12,
           buildTime: 4,      
-          hopeBonus: 15      
+          hopeBonus: 10
         },
         // Tier 3: Permanent Settlement
         {
@@ -58,7 +58,7 @@ module.exports = {
           protection: 1.0,
           materialCost: 24,  
           buildTime: 6,     
-          hopeBonus: 20      
+          hopeBonus: 15      
         }
       ]
     },
@@ -119,7 +119,7 @@ module.exports = {
           min: 10,
           max: 15
         },
-        hopeBonus: 20
+        hopeBonus: 18
       }
       ]
     },
@@ -169,7 +169,7 @@ module.exports = {
             min: 6,
             max: 9
           },
-          hopeBonus: 15
+          hopeBonus: 13
         },
         {
           level: 4,
@@ -181,7 +181,7 @@ module.exports = {
             min: 9,
             max: 15
           },
-          hopeBonus: 20
+          hopeBonus: 16
         }
       ]
     },

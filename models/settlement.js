@@ -78,12 +78,7 @@ class Settlement {
   }
 
   processInfrastructureUpgrades() {
-    const result = this.infrastructure.processDailyUpgrades();
-    
-    // Free up mechanics from completed projects
-    const completedProjects = result.completed;
-    
-    return result;
+    return this.infrastructure.processDailyUpgrades();
   }
 
   // Add resources to the settlement

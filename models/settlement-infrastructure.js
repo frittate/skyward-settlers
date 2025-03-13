@@ -91,6 +91,45 @@ class SettlementInfrastructure {
     return resources;
   }
 
+  processDailyUpgrades() {
+    const completed = [];
+    const continuing = [];
+    
+    // Process each upgrade in progress
+    for (const upgrade of this.upgradesInProgress) {
+      upgrade.timeLeft--;
+      
+      if (upgrade.timeLeft <= 0) {
+        // Upgrade is complete
+        completed.push(upgrade);
+        
+        // Update infrastructure level
+        this.updateInfrastructureLevel(upgrade.category, upgrade.level);
+      } else {
+        // Upgrade continues
+        continuing.push(upgrade);
+      }
+    }
+    
+    // Update upgrades in progress
+    this.upgradesInProgress = continuing;
+    
+
+    return {
+      completed: completed,
+      continuing: continuing
+    };
+  }
+
+  updateInfrastructureLevel(category, level) {
+    if (this.infrastructure[category]) {
+      this.infrastructure[category].level = level;
+    } else {
+      this.infrastructure[category] = { level: level };
+    }
+  }
+  
+
   // Get all available upgrade options based on current infrastructure
   /*   getAvailableUpgrades() {
       const available = [];

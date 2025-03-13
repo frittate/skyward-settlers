@@ -80,7 +80,7 @@ class GameEngine {
   displaySettlementStatus() {
     console.log('\nSETTLEMENT:');
     console.log(`${this.settlement.getHopeText(this.settlers)}`)
-    console.log(`Buildings: \n${this.settlement.infrastructure.toString()}`)
+    console.log(`${this.settlement.infrastructure.toString()}`)
   }
   
 

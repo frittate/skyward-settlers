@@ -38,7 +38,7 @@ class AfternoonPhase {
         } else if (settler.busyUntil === "infrastructure") {
           activity = "Building infrastructure";
         } else {
-          activity = "On expedition (return day: " + settler.busyUntil + ")";
+          activity = "On expedition.";
         }
         console.log(`- ${settler.name} (${settler.role}): ${activity}`);
       });
@@ -66,7 +66,7 @@ class AfternoonPhase {
       // Only show foraging option if we haven't reached the limit
       if (expeditionCount < availableForExpedition) {
         // Check if emergency foraging is needed
-        if (this.game.settlement.resources.food === 0 && this.game.settlement.resources.water === 0) {
+        if ((this.game.settlement.resources.food + this.game.settlement.resources.water) <= 4) {
           console.log("1. Emergency foraging (desperate measure, no supplies needed)");
         } else {
           console.log("1. Send foraging");

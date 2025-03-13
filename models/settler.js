@@ -123,7 +123,7 @@ class Settler {
         this.recovering = false;
         return `${this.name} has fully recovered from their expedition and is ready for new assignments.`;
       } else {
-        return `${this.name} is still recovering from expedition (${this.recoveryDaysLeft} days left).`;
+        return `${this.name} is still recovering from expedition (${this.recoveryDaysLeft} day(s) left).`;
       }
     }
     return null;
@@ -166,7 +166,7 @@ class Settler {
     let status = `${this.name} (${this.role})`;
     
     // Health and morale with details if low
-    status += ` - Health 2: ${this.health}`;
+    status += ` - Health: ${this.health}`;
     if (this.health < 50) status += " [POOR]";
     if (this.wounded) status += " [WOUNDED]";
     if (this.recovering) status += ` [RECOVERING: ${this.recoveryDaysLeft}d]`;
