@@ -11,69 +11,12 @@ module.exports = {
     materials: 3,
     hope: 50
   },
-  
-  // Expedition configuration
-  expedition: {
-    // Duration ranges by radius
-    duration: {
-      'small': {min: 2, max: 3},
-      'medium': {min: 3, max: 5},
-      'large': {min: 5, max: 7},
-      'emergency': {min: 1, max: 1}
-    },
-    
-    // Supply costs by radius
-    supplyCost: {
-      'small': {food: 1, water: 1},
-      'medium': {food: 2, water: 2},
-      'large': {food: 3, water: 3},
-      'emergency': {food: 0, water: 0}
-    },
-    
-    // Recovery time needed after expedition
-    recoverTime: {
-      'small': 1,
-      'medium': 2,
-      'large': 3,
-      'emergency': 1
-    },
-    
-    // Success chance varies by radius
-    successChance: {
-      'small': 0.8,   // 20% chance of failure
-      'medium': 0.65,  // 35% chance of failure
-      'large': 0.55,   // 45% chance of failure
-      'emergency': 0.3 // 70% chance of failure
-    },
-    
-    // Survivor discovery chance by radius
-    survivorChance: {
-      'small': 0.05,  // 5% chance
-      'medium': 0.10, // 10% chance
-      'large': 0.15,  // 15% chance
-      'emergency': 0  // No chance
-    },
-    
-    // Multipliers for resource returns
-    resourceMultiplier: {
-      'small': 2.5,     // 1.5-2.5x return
-      'medium': 3.25,    // 2-4x return 
-      'large': 4.5    // 3-6x return
-    },
-    
-    // Chance for jackpot finds (exceptional resources)
-    jackpotChance: 0.15, // 15% chance
-    
-    // Chance for expedition delay
-    delayChance: 0.05    // 5% chance
-  },
-  
   // Hope system configuration
   hope: {
     // Events that affect settler hope
     hopeChange: {
-      'successfulExpedition': 5,
-      'jackpotFind': 2,
+      'successfulExpedition': 3,
+      'jackpotFind': 1,
       'failedExpedition': -5,
       'newSettler': 10,
       'rescuedSurvivor': 10,

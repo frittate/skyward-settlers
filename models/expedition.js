@@ -1,7 +1,7 @@
 // models/expedition.js
 const { randomInt } = require('../utils/utils');
 const gameConfig = require('../config/game-config');
-const resourcesConfig = require('../config/resources-config');
+const expeditionConfig = require('../config/expedition-config');
 
 // Expedition class to handle foraging
 class Expedition {
@@ -30,7 +30,7 @@ class Expedition {
   
   // Set up expedition parameters based on radius and config
   setExpeditionParameters(customDuration) {
-    const config = gameConfig.expedition;
+    const config = expeditionConfig.expedition;
     
     // Set duration
     if (customDuration) {
@@ -55,102 +55,102 @@ class Expedition {
   }
   
   // Generate base resources found during expedition
- // Inside the Expedition class, replace the generateBaseResources() method:
-
   generateBaseResources() {
-    // Get config data
-    const config = gameConfig.expedition;
-    const resConfig = resourcesConfig.expeditionResources;
-    
+    const config = expeditionConfig.expedition;
+    const resConfig = expeditionConfig.expeditionResources;
+  
+    console.log(JSON.stringify(resConfig))
+
     // Handle emergency expeditions separately
     if (this.radius === 'emergency') {
       this.generateEmergencyResources();
       return;
     }
-
-    // Check if expedition is successful at finding resources
+  
+    // Check success
     const isSuccessful = Math.random() < config.successChance[this.radius];
+    console.log('Expedition success: ', isSuccessful)
     if (!isSuccessful) {
       this.handleFailedExpedition();
       return;
     }
 
-    // Calculate base amount from duration and radius
-    const baseAmount = Math.floor(this.duration * config.resourceMultiplier[this.radius]);
-
-    // Add variability to resource returns
-    const variabilityFactor = resConfig.variability.min + 
-                            (Math.random() * (resConfig.variability.max - resConfig.variability.min));
-    const adjustedAmount = Math.ceil(baseAmount * variabilityFactor);
-
-    // Create "jackpot" chance for exceptional finds
-    const jackpot = Math.random() < config.jackpotChance;
-    const jackpotMultiplier = jackpot ? 2 : 1;
-    this.jackpotFind = jackpot;
-
-    // Track if we've found at least one resource
+  
+    // We’ll do just one “roll” for the entire expedition
+    // (instead of day-by-day summation).
     let foundAnyResource = false;
-
-    // Process each resource type using the configuration
-    for (const [resourceType, distribution] of Object.entries(resConfig.distribution)) {
-      // Get chance for this radius if defined, or default to 0
-      const chanceConfig = resConfig.resourceChances[resourceType] || {};
-      const chance = chanceConfig[this.radius] || 0;
-      
-      // Skip if there's no chance to find this resource
-      if (chance <= 0) continue;
-
-      // Check if we find this resource - treat chances > 1 as guaranteed
-      if (chance >= 1 || Math.random() <= chance) {
-        // If this resource has custom amounts defined, use those
-        const amountConfig = resConfig.resourceAmounts[resourceType];
-        
-        if (amountConfig && amountConfig[this.radius]) {
-          const range = amountConfig[this.radius];
-          const baseAmount = randomInt(range.min, range.max);
-          const amount = jackpot ? baseAmount * 2 : baseAmount;
-          if (amount > 0) {
-            this.resources[resourceType] += amount;
-            foundAnyResource = true;
-          }
-        } else {
-          // Otherwise use the distribution formula
-          const amount = Math.ceil(adjustedAmount * distribution * jackpotMultiplier);
-          if (amount > 0) {
-            this.resources[resourceType] += amount;
-            foundAnyResource = true;
-          }
-        }
-      }
+  
+    // Decide if there’s a jackpot 
+    const jackpot = Math.random() < config.jackpotChance;
+    this.jackpotFind = jackpot; // track it
+  
+    // Pick which resource gets the jackpot (if any)
+    let jackpotResource = null;
+    if (jackpot) {
+      const resourceList = Object.keys(resConfig.baseAmounts);
+      jackpotResource = resourceList[Math.floor(Math.random() * resourceList.length)];
     }
+  
+    // For each resource type
+    for (const [resourceType, radiusMap] of Object.entries(resConfig.baseAmounts)) {
+      const range = radiusMap[this.radius];
+      if (!range) continue;
 
-    // Ensure successful expeditions always find at least something
-    if (!foundAnyResource) {
-      // Guarantee at least 1 food or water
-      if (Math.random() < 0.5) {
-        this.resources.food += 1;
+      console.log('DEBUG: Generating base resources for', resourceType, 'in radius', this.radius, 'with range', range, 'and jackpot', jackpotResource === resourceType, '')
+  
+      let amountFound = randomInt(range.min, range.max);
+  
+      // Apply variability if desired
+      const variabilityFactor = resConfig.variability.min + 
+        (Math.random() * (resConfig.variability.max - resConfig.variability.min));
+      amountFound = Math.round(amountFound * variabilityFactor);
+  
+      // Apply resourceMultiplier if you still want it
+      if (config.resourceMultiplier[this.radius]) {
+        amountFound = Math.round(amountFound * config.resourceMultiplier[this.radius]);
+      }
+  
+      // Jackpot doubles the chosen resource
+      if (resourceType === jackpotResource) {
+        amountFound *= 2;
+      }
+  
+      // Make sure food/water is at least 1 if you want them guaranteed
+      if (resourceType === 'food' || resourceType === 'water') {
+        amountFound = Math.max(amountFound, 1);
       } else {
-        this.resources.water += 1;
+        amountFound = Math.max(amountFound, 0);
+      }
+  
+      // Add to expedition resources
+      if (amountFound > 0) {
+        this.resources[resourceType] += amountFound;
+        foundAnyResource = true;
       }
     }
-
-    // Random delay chance
+  
+    // Ensure we have at least 1 of something (optional)
+    if (!foundAnyResource) {
+      this.resources.food += 1;
+    }
+  
+    // Delay chance
     if (Math.random() < config.delayChance) {
       this.duration += randomInt(1, 2);
       this.delayReason = "encountered obstacles";
     }
   }
-  
+
   // Handle emergency expeditions
   generateEmergencyResources() {
     // Much higher failure chance for emergency expeditions
-    if (Math.random() > gameConfig.expedition.successChance.emergency) {
+    if (Math.random() > expeditionConfig.expedition.successChance.emergency) {
       this.failureReason = "couldn't find any resources";
       return;
     }
 
     // Get emergency resources from config
-    const emergency = resourcesConfig.expeditionResources.emergency;
+    const emergency = expeditionConfig.expeditionResources.emergency;
     
     // Add resources for each type defined in emergency config
     for (const [resourceType, range] of Object.entries(emergency)) {
@@ -232,6 +232,7 @@ class Expedition {
   processExpedition(eventSystem) {
     // Generate base resources
     this.generateBaseResources();
+    console.log(`DEBUG ${this.settler.name}, ${this.radius}, ${JSON.stringify(this.resources)}`)
 
     // Generate events for each day
     for (let day = 1; day <= this.duration; day++) {
@@ -246,7 +247,7 @@ class Expedition {
 
     // Chance to find a survivor (only for non-emergency expeditions)
     if (this.radius !== 'emergency') {
-      const survivorChance = gameConfig.expedition.survivorChance[this.radius] || 0;
+      const survivorChance = expeditionConfig.expedition.survivorChance[this.radius] || 0;
       if (Math.random() < survivorChance) {
         this.generateSurvivor();
       }

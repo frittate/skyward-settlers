@@ -24,35 +24,37 @@ class MorningPhase {
       printPhaseHeader("NIGHT EFFECTS");
       this.applyNightlyEffects()
       this.applyNightSurvivedHope()
-    }
 
 
-    // Update recovery status for all settlers
-    this.game.settlers.forEach(settler => {
-      const recoveryMessage = settler.updateRecovery();
-      if (recoveryMessage) {
-        console.log(recoveryMessage);
+      // Update recovery status for all settlers
+      this.game.settlers.forEach(settler => {
+        const recoveryMessage = settler.updateRecovery();
+        if (recoveryMessage) {
+          console.log(recoveryMessage);
+        }
+      });
+      
+      // Get output of buildings
+      this.getInfrastructureProduction();
+
+      // Process returning expeditions
+      printPhaseHeader("RETURNING EXPEDITIONS");
+      await this.processReturningExpeditions();
+      
+      // Check for random visitors based on hope
+      await this.checkForSurvivors();
+
+      // Show buildings that are being built
+      await this.getCurrentInfrastructureProgress();
+
+      // Track consecutive days with sufficient resources
+      const stabilityMessage = this.game.settlement.trackResourceStability(this.game.settlers);
+      if (stabilityMessage) {
+        console.log("\n" + stabilityMessage);
       }
-    });
-    
-    // Get output of buildings
-    this.getInfrastructureProduction();
-
-    // Process returning expeditions
-    printPhaseHeader("RETURNING EXPEDITIONS");
-    await this.processReturningExpeditions();
-    
-    // Check for random visitors based on hope
-    await this.checkForSurvivors();
-
-    // Show buildings that are being built
-    await this.getCurrentInfrastructureProgress();
-
-    // Track consecutive days with sufficient resources
-    const stabilityMessage = this.game.settlement.trackResourceStability(this.game.settlers);
-    if (stabilityMessage) {
-      console.log("\n" + stabilityMessage);
     }
+
+    this.game.displayResourcesStatus()
 
     return this.game.askQuestion("\nPress Enter to continue to Resource Distribution...");
   }
@@ -196,7 +198,7 @@ class MorningPhase {
           if (expedition.jackpotFind) {
             const exceptionalHopeMessage = this.game.updateAllSettlersMorale(
               gameConfig.hope.hopeChange.jackpotFind,
-              "jackpot find"
+              "found more than expected"
             );
             if (exceptionalHopeMessage) this.game.logEvent(exceptionalHopeMessage);
           }

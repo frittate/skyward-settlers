@@ -65,12 +65,7 @@ class AfternoonPhase {
 
       // Only show foraging option if we haven't reached the limit
       if (expeditionCount < availableForExpedition) {
-        // Check if emergency foraging is needed
-        if ((this.game.settlement.resources.food + this.game.settlement.resources.water) <= 4) {
-          console.log("1. Emergency foraging (desperate measure, no supplies needed)");
-        } else {
-          console.log("1. Send foraging");
-        }
+        console.log("1. Send foraging");
       } else {
         console.log("1. [UNAVAILABLE] Send foraging (must keep at least one settler at settlement)");
       }
@@ -93,7 +88,14 @@ class AfternoonPhase {
 
       console.log("4. Rest");
 
-      const taskChoice = await this.game.askQuestion("Choose task (1-4): ");
+
+      // Check if emergency foraging is needed
+      const resourcesAreLow = (this.game.settlement.resources.food + this.game.settlement.resources.water) < 4
+      if (resourcesAreLow) {
+        console.log("5. High risk emergency foraging (desperate measure, no supplies needed)");
+      }
+
+      const taskChoice = await this.game.askQuestion("Choose task: ");
 
       if (taskChoice === '1') { 
         // Foraging - check availability and health
@@ -108,7 +110,14 @@ class AfternoonPhase {
       } else if (taskChoice === '3') { 
         // Infrastructure Building
         await this.handleShelterAssignment(settler, hasMechanic);
-      } else { 
+      } else if (taskChoice === '5') {
+        await this.handleForagingAssignment(settler, expeditionCount, availableForExpedition, true);
+        // If foraging was assigned, increment counter
+        if (settler.busy) {
+          expeditionCount++;
+        }
+      }
+       else { 
         // Rest or default
         const restResult = settler.rest();
         console.log(restResult);
@@ -375,7 +384,7 @@ class AfternoonPhase {
     }
     
   // Handle foraging expedition assignment
-  async handleForagingAssignment(settler, currentExpeditions, maxExpeditions) {
+  async handleForagingAssignment(settler, currentExpeditions, maxExpeditions, isEmergency = false) {
     if (currentExpeditions >= maxExpeditions) {
       console.log("You must keep at least one settler at the settlement!");
       console.log(`${settler.name} will rest instead.`);
@@ -391,10 +400,6 @@ class AfternoonPhase {
       console.log(restResult);
       return;
     }
-
-    // Check if this is an emergency foraging situation
-    const isEmergency = this.game.settlement.resources.food === 0 && 
-                         this.game.settlement.resources.water === 0;
 
     if (isEmergency) {
       await this.handleEmergencyForaging(settler);

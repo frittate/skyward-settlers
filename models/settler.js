@@ -164,15 +164,17 @@ class Settler {
   toString() {
     // Basic info
     let status = `${this.name} (${this.role})`;
-    
-    // Health and morale with details if low
-    status += ` - Health: ${this.health}`;
-    if (this.health < 50) status += " [POOR]";
-    if (this.wounded) status += " [WOUNDED]";
-    if (this.recovering) status += ` [RECOVERING: ${this.recoveryDaysLeft}d]`;
-    
-    status += `, Morale: ${this.morale}`;
-    if (this.morale < 50) status += " [LOW]";
+
+    if (!this.busy) {
+      // Health and morale with details if low
+      status += ` - Health: ${this.health}`;
+      if (this.health < 50) status += " [POOR]";
+      if (this.wounded) status += " [WOUNDED]";
+      if (this.recovering) status += ` [RECOVERING: ${this.recoveryDaysLeft}d]`;
+      
+      status += `, Morale: ${this.morale}`;
+      if (this.morale < 50) status += " [LOW]";
+    }
     
     // Busy status
     if (this.busy) {

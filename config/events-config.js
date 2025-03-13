@@ -1,9 +1,9 @@
 module.exports = {
   // Chance of an event occurring based on radius (per day)
   eventChance: {
-    'small': 0.3,  // 30% chance per day
-    'medium': 0.5, // 50% chance per day
-    'large': 0.7,  // 70% chance per day
+    'small': 0.2,  // 30% chance per day
+    'medium': 0.3, // 50% chance per day
+    'large': 0.4,  // 70% chance per day
     'emergency': 0.4 // 40% chance for emergency expeditions
   },
   

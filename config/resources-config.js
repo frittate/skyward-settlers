@@ -1,48 +1,7 @@
 // config/resources-config.js
 // Configuration for resources and resource generation
 
-module.exports = {
-  // Resource distribution for expeditions
-  expeditionResources: {
-    // Base distribution percentages
-    distribution: {
-      food: 0.35,    // 35% of resources as food
-      water: 0.35,   // 35% of resources as water
-      meds: 0.15,     // 15% of resources as medicine (when available)
-      materials: 0.15 // 15% of resources as materials (when available)
-      // Add new resource types here with their distribution percentages
-    },
-    
-    // Resource chances by radius and type
-    resourceChances: {
-      'food': { 'small': 1.0, 'medium': 1.15, 'large': 1.3 },
-      'water': { 'small': 1.0, 'medium': 1.15, 'large': 1.3 },
-      'meds': { 'small': 0.3, 'medium': 0.45, 'large': 0.6 },
-      'materials': { 'small': 0.3, 'medium': 0.4, 'large': 0.5 }
-      // Add new resource types here with their chances by radius
-    },
-    
-    // Resource amounts by radius and type (base amounts)
-    resourceAmounts: {
-      'meds': { 'small': { min: 0, max: 2 }, 'medium': { min: 1, max: 3 }, 'large': { min: 2, max: 4 } },
-      'materials': { 'small': { min: 0, max: 3 }, 'medium': { min: 2, max: 4 }, 'large': { min: 2, max: 6 } }
-      // Define custom ranges for resources that don't use the standard distribution formula
-    },
-    
-    // Variability in resource returns
-    variability: {
-      min: 0.75,    // -25% variability
-      max: 1.25     // +25% variability
-    },
-    
-    // Emergency expedition resources (if successful)
-    emergency: {
-      food: {min: 1, max: 3},
-      water: {min: 1, max: 3}
-      // Define emergency expedition resources for each type
-    }
-  },
-  
+module.exports = { 
   // Resource consumption effects
   consumption: {
     // Health loss per day without food
