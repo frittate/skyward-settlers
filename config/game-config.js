@@ -73,11 +73,11 @@ module.exports = {
     // Events that affect settler hope
     hopeChange: {
       'successfulExpedition': 5,
-      'exceptionalFind': 5,
+      'jackpotFind': 2,
       'failedExpedition': -5,
       'newSettler': 10,
-      'rescuedSurvivor': 15,
-      'turnedAwaySurvivor': -5,
+      'rescuedSurvivor': 10,
+      'turnedAwaySurvivor': -8,
       'settlerDeath': -30,
       'settlerAbandonment': -20,
       'foodShortage': -3,

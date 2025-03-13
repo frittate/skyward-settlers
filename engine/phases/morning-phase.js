@@ -25,22 +25,16 @@ class MorningPhase {
       this.applyNightlyEffects()
       this.applyNightSurvivedHope()
     }
-
     
     this.getInfrastructureProduction();
-
 
     printPhaseHeader("RETURNING EXPEDITIONS");
     await this.processReturningExpeditions();
     
-
     // Check for random visitors based on hope
     await this.checkForSurvivors();
 
     // await this.processInfrastructureUpgrades();
-
-    // Check for shelter upgrade progress
-    // await this.processShelterUpgrade();
 
   
 
@@ -97,7 +91,6 @@ class MorningPhase {
     }
   }
   
-
   async processInfrastructureUpgrades() {
     const upgradeResults = this.game.settlement.processInfrastructureUpgrades();
     
@@ -143,62 +136,12 @@ class MorningPhase {
     }
   }
   
-  // Process shelter upgrade progress if one is ongoing
-  async processShelterUpgrade() {
-    if (!this.game.settlement.upgradeInProgress) {
-      return;
-    }
-
-    const upgradeResult = this.game.settlement.processShelterUpgrade();
-    
-    if (upgradeResult) {
-      console.log("\n=== SHELTER UPDATE ===");
-      
-      if (upgradeResult.complete) {
-        console.log(`${upgradeResult.shelterName} construction is complete!`);
-        console.log(`Your settlement now has better protection from the elements.`);
-        
-        if (upgradeResult.hopeBonus) {
-          this.game.updateAllSettlersMorale(upgradeResult.hopeBonus, `completed ${upgradeResult.shelterName}`)
-
-          console.log(upgradeResult.hopeMessage);
-        }
-        
-        console.log(`${upgradeResult.mechanic} is now available for other tasks.`);
-        
-        // Special message for first upgrade (Basic Tents)
-        if (upgradeResult.shelterTier === 1) {
-          console.log("\nWith Basic Tents, your settlers will no longer lose health from exposure at night!");
-        }
-        
-      } else {
-        console.log(`${upgradeResult.shelterName} construction continues.`);
-        console.log(`${upgradeResult.daysLeft} days remaining until completion.`);
-        console.log(`${upgradeResult.mechanic} is still working on the project.`);
-      }
-    }
-  }
 
   // Check for random visitor appearance based on hope
   async checkForSurvivors() {
     const chance = this.game.settlement.getVisitorChance();
     if (chance > 0 && Math.random() * 100 < chance) {
       await this.handleSurvivor(false);
-    }
-  }
-
-
-  // Process expedition status reports
-  async processStatusReports() {
-    const activeExpeditions = this.game.expeditions.filter(exp => 
-      exp.statusReportDay === this.game.day && exp.statusReport
-    );
-
-    if (activeExpeditions.length > 0) {
-      console.log("\nEXPEDITION STATUS REPORTS:");
-      for (const expedition of activeExpeditions) {
-        console.log(`- ${expedition.statusReport}`);
-      }
     }
   }
 
@@ -224,12 +167,11 @@ class MorningPhase {
           }
         }
 
-        // Create resource report
-        const resourceString = formatResourceList(expedition.resources);
+        // Check if expedition found ANY resources by summing all resource values
+        const totalResources = Object.values(expedition.resources).reduce((sum, amount) => sum + amount, 0);
 
-        // Boost settler morale on successful return with resources
-        await this.processExpeditionReturn(expedition, resourceString);
-
+        await this.createExpeditionReport(expedition, totalResources);
+        
         // Check if they found a survivor
         if (expedition.foundSurvivor && expedition.survivor) {
           await this.handleSurvivor(true);
@@ -243,6 +185,28 @@ class MorningPhase {
             console.log(`    ${event.result}`);
           }
         }
+
+        if (totalResources > 0) {
+          const hopeMessage = this.game.updateAllSettlersMorale(
+            gameConfig.hope.hopeChange.successfulExpedition, 
+            "successful expedition"
+          );
+          if (hopeMessage) this.game.logEvent(hopeMessage);
+
+          if (expedition.jackpotFind) {
+            const exceptionalHopeMessage = this.game.updateAllSettlersMorale(
+              gameConfig.hope.hopeChange.jackpotFind,
+              "jackpot find"
+            );
+            if (exceptionalHopeMessage) this.game.logEvent(exceptionalHopeMessage);
+          }
+        } else {
+          const failedHopeMessage = this.game.updateAllSettlersMorale(
+            gameConfig.hope.hopeChange.failedExpedition,
+            "failed expedition"
+          );
+          if (failedHopeMessage) this.game.logEvent(failedHopeMessage);
+        }
       }
 
       // Remove processed expeditions
@@ -252,13 +216,10 @@ class MorningPhase {
     }
   }
 
-  // Process expedition return results
-  async processExpeditionReturn(expedition, resourceString) {
+  // Create expedition report
+  async createExpeditionReport(expedition, totalResources) {
     const settler = expedition.settler;
-    
-    // Check if expedition found ANY resources by summing all resource values
-    const totalResources = Object.values(expedition.resources).reduce((sum, amount) => sum + amount, 0);
-    
+        
     if (totalResources > 0) {
       // Create a more detailed resource breakdown
       let resourceDetails = "";
@@ -276,38 +237,14 @@ class MorningPhase {
       let message = `- ${settler.name} has returned from the ${expedition.radius} radius with ${resourceDetails}.`;
       
       if (expedition.jackpotFind) {
-        message += " They found an exceptional cache of supplies!";
-        
-        // Use updateAllSettlersMorale for exceptional find
-        const hopeMessages = this.game.updateAllSettlersMorale(
-          gameConfig.hope.hopeChange.exceptionalFind, 
-          "exceptional resource find"
-        );
-        
-        if (hopeMessages) this.game.logEvent(hopeMessages);
-      } else {
-        // Use updateAllSettlersMorale for successful expedition
-        const hopeMessages = this.game.updateAllSettlersMorale(
-          gameConfig.hope.hopeChange.successfulExpedition, 
-          "successful expedition"
-        );
-        
-        if (hopeMessages) this.game.logEvent(hopeMessages);
+        message += " They found an exceptional cache of supplies!"; 
       }
       
       message += ` They need ${expedition.recoverTime} days to recover.`;
       this.game.logEvent(message);
     } else {
       // Should rarely happen with our updated resource generation, but handle it just in case
-      this.game.logEvent(`- ${settler.name} has returned from the ${expedition.radius} radius with no resources. The expedition was a failure. They need ${expedition.recoverTime} days to recover.`);
-      
-      // Use updateAllSettlersMorale for failed expedition
-      const hopeMessage = this.game.updateAllSettlersMorale(
-        gameConfig.hope.hopeChange.failedExpedition, 
-        "failed expedition"
-      );
-      
-      if (hopeMessage) this.game.logEvent(hopeMessage);
+      this.game.logEvent(`- ${settler.name} has returned from the ${expedition.radius} radius with no resources. The expedition was a failure. They need ${expedition.recoverTime} days to recover.`);   
     }
   }
 
