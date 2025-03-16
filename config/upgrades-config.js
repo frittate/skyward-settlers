@@ -38,7 +38,7 @@ module.exports = {
           description: "A number of basic tents with improved protection.",
           materialCost: 6,  
           buildTime: 2,     
-          hopeBonus: 10      
+          hopeBonus: 5      
         },
         // Tier 2: Reinforced Shelters
         {
@@ -48,7 +48,7 @@ module.exports = {
           protection: 0.9,
           materialCost: 12,
           buildTime: 4,      
-          hopeBonus: 10
+          hopeBonus: 8
         },
         // Tier 3: Permanent Settlement
         {
@@ -58,7 +58,7 @@ module.exports = {
           protection: 1.0,
           materialCost: 24,  
           buildTime: 6,     
-          hopeBonus: 15      
+          hopeBonus: 10      
         }
       ]
     },
@@ -95,7 +95,7 @@ module.exports = {
           min: 3,
           max: 4
         },
-        hopeBonus: 10
+        hopeBonus: 8
       },
       {
         level: 3,
@@ -107,7 +107,7 @@ module.exports = {
           min: 5,
           max: 8
         },
-        hopeBonus: 15
+        hopeBonus: 10
       },
       {
         level: 4,
@@ -119,7 +119,7 @@ module.exports = {
           min: 10,
           max: 15
         },
-        hopeBonus: 18
+        hopeBonus: 12
       }
       ]
     },
@@ -157,7 +157,7 @@ module.exports = {
             min: 3,
             max: 6
           },
-          hopeBonus: 10
+          hopeBonus: 8
         },
         {
           level: 3,
@@ -169,7 +169,7 @@ module.exports = {
             min: 6,
             max: 9
           },
-          hopeBonus: 13
+          hopeBonus: 10
         },
         {
           level: 4,
@@ -181,7 +181,7 @@ module.exports = {
             min: 9,
             max: 15
           },
-          hopeBonus: 16
+          hopeBonus: 12
         }
       ]
     },

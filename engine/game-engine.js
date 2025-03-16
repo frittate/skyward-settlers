@@ -176,8 +176,8 @@ class GameEngine {
     await this.morningPhase.execute();
 
     // Check if all settlers at home have died but some are on expedition
-    const homeSettlers = this.settlers.filter(s => !s.busy);
-    const expeditionSettlers = this.settlers.filter(s => s.busy);
+    const homeSettlers = this.settlers.filter(s => s.activity === '' || s.activity !== 'expedition');
+    const expeditionSettlers = this.settlers.filter(s => s.activity === 'expedition');
 
     if (homeSettlers.length === 0 && expeditionSettlers.length > 0) {
       console.log("\n! CRITICAL SITUATION: All settlers at the settlement have died or left!");

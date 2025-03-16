@@ -33,13 +33,12 @@ class AfternoonPhase {
       console.log("\nCurrently busy settlers:");
       busySettlers.forEach((settler, index) => {
         let activity;
-        if (settler.busyUntil === "shelter") {
-          activity = "Building shelter infrastructure";
-        } else if (settler.busyUntil === "infrastructure") {
-          activity = "Building infrastructure";
-        } else {
-          activity = "On expedition.";
+        if (settler.activity === 'expedition') {
+          activity = 'On expedition.'
+        } else if (settler.activity === 'infrastructure') {
+          activity = 'Working on a settlement upgrade.'
         }
+
         console.log(`- ${settler.name} (${settler.role}): ${activity}`);
       });
     }
@@ -356,7 +355,8 @@ class AfternoonPhase {
       // Start the infrastructure upgrade
       const upgradeResult = this.game.settlement.infrastructure.startUpgrade(
         selectedOption.category, 
-        projectMechanics
+        projectMechanics,
+        this.game.day
       );
       
       if (upgradeResult.success) {      
@@ -427,6 +427,7 @@ class AfternoonPhase {
 
       // Mark settler as busy
       settler.busy = true;
+      settler.activity = 'expedition';
       settler.busyUntil = returnDay;
 
       // Add to active expeditions
@@ -483,6 +484,7 @@ class AfternoonPhase {
 
       // Mark settler as busy
       settler.busy = true;
+      settler.activity = 'expedition';
       settler.busyUntil = returnDay;
 
       // Add to active expeditions

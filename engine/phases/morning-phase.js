@@ -62,7 +62,7 @@ class MorningPhase {
   // Apply nightly exposure effects to settlers (moved from evening phase)
   applyNightlyEffects() {
      // Get settlers who are present (not on expeditions)
-     const presentSettlers = this.game.settlers.filter(s => (s.busy !== true) && !isNaN(s.busyUntil));
+     const presentSettlers = this.game.settlers.filter(settler => settler.activity !== 'expedition');
 
      console.log(this.game.settlement.applyNightlyExposure(presentSettlers))
   }
@@ -108,6 +108,7 @@ class MorningPhase {
           const mechanic = this.game.settlers.find(s => s.name === mechanicName);
           if (mechanic) {
             mechanic.busy = false;
+            mechanic.activity = '';
             mechanic.busyUntil = 0;
             console.log(`- ${mechanic.name} is now available for other tasks.`);
           }

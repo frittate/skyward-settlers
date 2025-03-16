@@ -13,7 +13,7 @@ class MiddayPhase {
     // Get present settlers - Those who are not on expedition
     // Building settlers are still present and need resources
     const presentSettlers = this.game.settlers.filter(settler => 
-      !settler.busy || (settler.busy && (settler.busyUntil === "shelter" || settler.busyUntil === "infrastructure"))
+      !settler.busy || (settler.activity !== 'expedition')
     );
     
     const presentCount = presentSettlers.length;
@@ -122,12 +122,8 @@ class MiddayPhase {
     for (const settler of presentSettlers) {
       // For building settlers, show their current task
       let settlerStatus = "";
-      if (settler.busy) {
-        if (settler.busyUntil === "shelter") {
-          settlerStatus = " [Building Shelter]";
-        } else if (settler.busyUntil === "infrastructure") {
-          settlerStatus = " [Building Infrastructure]";
-        }
+      if (settler.activity === 'infrastructure') {
+        settlerStatus = " [Building Infrastructure]";
       }
       
       console.log(`\n${settler.name} - Health: ${settler.health}, Morale: ${settler.morale}${settlerStatus}`);

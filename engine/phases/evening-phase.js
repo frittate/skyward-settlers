@@ -24,7 +24,6 @@ class EveningPhase {
     }
     
     // Summarize infrastructure progress
-    // Note: Using getUpgradesInProgress instead of getUpgradesInProgressSummary
     const upgradesInProgress = this.game.settlement.infrastructure.upgradesInProgress;
     if (upgradesInProgress.length > 0) {
       console.log(`- ${upgradesInProgress.length} infrastructure project${upgradesInProgress.length > 1 ? 's' : ''} in progress`);

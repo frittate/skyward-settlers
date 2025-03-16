@@ -27,6 +27,7 @@ class Settler {
   assignExpedition(radius, duration, returnDay) {
     if (this.canPerformActivity()) {
       this.busy = true;
+      this.activity = 'expedition';
       this.busyUntil = returnDay;
       this.expedition = {
         settler: this,
@@ -179,9 +180,12 @@ class Settler {
     // Busy status
     if (this.busy) {
       let activity = "";
-      if (this.busyUntil === "shelter") activity = "Building shelter";
-      else if (this.busyUntil === "infrastructure") activity = "Building infrastructure";
-      else activity = "On expedition";
+      
+      if (this.activity === "infrastructure") {
+        activity = "Building infrastructure" 
+      } else if (this.activity === 'expedition') {
+        activity = "On expedition";
+      }
       
       status += ` - BUSY: ${activity} until day ${this.busyUntil}`;
     }

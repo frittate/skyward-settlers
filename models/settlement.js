@@ -27,34 +27,6 @@ class Settlement {
     return this.infrastructure.getAvailableUpgrades();
   }
 
-  startInfrastructureUpgrade(upgradeType, mechanics) {
-    // Check if we have enough materials
-    const availableUpgrades = this.infrastructure.getAvailableUpgrades();
-    const upgrade = availableUpgrades.find(u => u.type === upgradeType);
-    
-    if (!upgrade) {
-      return { 
-        success: false, 
-        message: `${upgradeType} is not available for construction.` 
-      };
-    }
-    
-    // Check if we have enough materials
-    if (this.resources.materials < upgrade.materialCost) {
-      return { 
-        success: false, 
-        message: `Not enough materials. Need ${upgrade.materialCost}, have ${this.resources.materials}.` 
-      };
-    }
-    
-    // Consume materials
-    this.resources.materials -= upgrade.materialCost;
-    
-    // Start the upgrade
-    const result = this.infrastructure.startUpgrade(upgradeType, mechanics);
-    
-    return result;
-  }
 
   processDailyProduction() {
     const production = this.infrastructure.generateDailyResources();
