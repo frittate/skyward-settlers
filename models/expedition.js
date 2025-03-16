@@ -59,8 +59,6 @@ class Expedition {
     const config = expeditionConfig.expedition;
     const resConfig = expeditionConfig.expeditionResources;
   
-    console.log(JSON.stringify(resConfig))
-
     // Handle emergency expeditions separately
     if (this.radius === 'emergency') {
       this.generateEmergencyResources();
@@ -95,8 +93,6 @@ class Expedition {
     for (const [resourceType, radiusMap] of Object.entries(resConfig.baseAmounts)) {
       const range = radiusMap[this.radius];
       if (!range) continue;
-
-      console.log('DEBUG: Generating base resources for', resourceType, 'in radius', this.radius, 'with range', range, 'and jackpot', jackpotResource === resourceType, '')
   
       let amountFound = randomInt(range.min, range.max);
   
@@ -232,7 +228,6 @@ class Expedition {
   processExpedition(eventSystem) {
     // Generate base resources
     this.generateBaseResources();
-    console.log(`DEBUG ${this.settler.name}, ${this.radius}, ${JSON.stringify(this.resources)}`)
 
     // Generate events for each day
     for (let day = 1; day <= this.duration; day++) {
