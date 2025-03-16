@@ -359,9 +359,7 @@ class AfternoonPhase {
         projectMechanics
       );
       
-      if (upgradeResult.success) {
-        console.log(upgradeResult.message);
-        
+      if (upgradeResult.success) {      
         if (projectMechanics.length > 1) {
           const mechanicNames = projectMechanics.map(m => m.name).join(', ');
           const originalTime = selectedOption.buildTime;

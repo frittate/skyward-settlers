@@ -128,7 +128,103 @@ class SettlementInfrastructure {
       this.infrastructure[category] = { level: level };
     }
   }
-  
+
+  getAvailableUpgrades() {
+    const available = [];
+    const config = upgradesConfig.upgrades;
+    
+    // Check each upgrade category
+    for (const [category, categoryConfig] of Object.entries(config)) {
+      // Get current level for this category
+      const currentLevel = this.getInfrastructureLevel(category);
+      
+      // Check if we can upgrade to the next level
+      const nextLevel = currentLevel + 1;
+      
+      // Get the tier details for the next level
+      const nextTier = categoryConfig.tiers.find(tier => tier.level === nextLevel);
+      
+      // If a next tier exists, this is an available upgrade
+      if (nextTier) {
+        available.push({
+          category: category,
+          name: `${categoryConfig.name} (${nextTier.name})`,
+          level: nextLevel,
+          description: nextTier.description,
+          icon: categoryConfig.icon,
+          materialCost: nextTier.materialCost,
+          buildTime: nextTier.buildTime,
+          production: nextTier.production,
+          hopeBonus: nextTier.hopeBonus,
+          protection: nextTier.protection // For shelter upgrades
+        });
+      }
+    }
+    
+    return available;
+  }
+
+  getInfrastructureLevel(category) {
+    return this.infrastructure[category] ? this.infrastructure[category].level : 0;
+  }
+
+  hasUpgradeInProgress(category) {
+    return this.upgradesInProgress.some(upgrade => upgrade.category === category);
+  }
+
+  startUpgrade(upgradeCategory, mechanics) {
+    // Get all available upgrades
+    const availableUpgrades = this.getAvailableUpgrades();
+    
+    // Find the selected upgrade by category
+    const selectedUpgrade = availableUpgrades.find(u => u.category === upgradeCategory);
+    
+    if (!selectedUpgrade) {
+      return {
+        success: false,
+        message: `Cannot upgrade ${upgradeCategory} - no further upgrades available.`
+      };
+    }
+    
+    // Calculate build time based on number of mechanics
+    const mechanicCount = Math.min(mechanics.length, 4); // Cap at 4 mechanics for calculation
+    const speedMultiplier = upgradesConfig.settings.mechanicSpeedBonus[mechanicCount] || 1.0;
+    
+    // Round down but ensure at least 1 day
+    const adjustedBuildTime = Math.max(1, Math.floor(selectedUpgrade.buildTime / speedMultiplier));
+    
+    // Create the upgrade in progress
+    const upgrade = {
+      category: selectedUpgrade.category,
+      name: selectedUpgrade.name,
+      level: selectedUpgrade.level,
+      timeLeft: adjustedBuildTime,
+      originalTime: adjustedBuildTime,
+      mechanics: mechanics.map(m => m.name),
+      materialCost: selectedUpgrade.materialCost,
+      production: selectedUpgrade.production,
+      hopeBonus: selectedUpgrade.hopeBonus,
+      protection: selectedUpgrade.protection
+    };
+    
+    // Add to upgrades in progress
+    this.upgradesInProgress.push(upgrade);
+    
+    // Mark mechanics as busy
+    mechanics.forEach(mechanic => {
+      mechanic.busy = true;
+      mechanic.busyUntil = "infrastructure"; // Special marker for infrastructure duty
+    });
+    
+    return {
+      success: true,
+      message: `Started upgrading to ${upgrade.name}. Will take ${upgrade.timeLeft} days to complete.`,
+      mechanics: upgrade.mechanics,
+      adjustedBuildTime: adjustedBuildTime,
+      originalBuildTime: selectedUpgrade.buildTime
+    };
+  }
+
 
   // Get all available upgrade options based on current infrastructure
   /*   getAvailableUpgrades() {
@@ -374,17 +470,6 @@ class SettlementInfrastructure {
         originalTime: upgrade.originalTime,
         mechanics: upgrade.mechanics
       }));
-    }
-    
-    // Get the protection level for the current shelter
-    getShelterProtection() {
-      const shelterLevel = this.getInfrastructureLevel('shelter');
-      const shelterConfig = upgradesConfig.upgrades.shelter;
-      
-      if (!shelterConfig || !shelterConfig.tiers) return 0;
-      
-      const tierDetails = shelterConfig.tiers.find(t => t.level === shelterLevel);
-      return tierDetails ? tierDetails.protection : 0;
     }
     
     // Check if a category has a upgrade in progress

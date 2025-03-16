@@ -8,7 +8,7 @@ module.exports = {
     food: 9,
     water: 9,
     meds: 1,
-    materials: 3,
+    materials: 10,
     hope: 50
   },
   // Hope system configuration

@@ -33,14 +33,7 @@ class EveningPhase {
       });
     }
     
-    // Shelter upgrade summary
-    if (this.game.settlement.upgradeInProgress) {
-      const nextTier = this.game.settlement.shelterTier + 1;
-      const shelterName = this.game.settlement.shelterConfig[nextTier].name;
-      console.log(`- Building ${shelterName}: ${this.game.settlement.upgradeTimeLeft} days remaining`);
-    }
-
-    // Show any settlers with critical health/morale
+     // Show any settlers with critical health/morale
     const criticalSettlers = this.game.settlers.filter(s => s.health < 30 || s.morale < 30);
     if (criticalSettlers.length > 0) {
       console.log("\nWARNING: Settlers in critical condition:");
@@ -52,9 +45,6 @@ class EveningPhase {
       });
     }
 
-    // Display shelter status (but don't apply effects yet)
-    await this.displayNightConditions();
-
     // Preview tomorrow's events
     await this.displayTomorrowPreview();
 
@@ -65,22 +55,6 @@ class EveningPhase {
     return continueGame.toLowerCase() !== 'quit';
   }
 
-  // Display night conditions without applying effects yet
-  async displayNightConditions() {
-    console.log("\nNIGHT CONDITIONS:");
-    
-    // Display shelter status
-    const shelterStatus = this.game.settlement.getShelterStatus();
-    console.log(`Shelter: ${shelterStatus.name} (${shelterStatus.protection}% protection)`);
-    
-    // Warn about shelter quality but don't apply effects yet
-    if (this.game.settlement.shelterTier === 0) {
-      console.log("- The makeshift shelter provides little protection from the elements.");
-      console.log("- Settlers may lose health overnight due to exposure.");
-    } else {
-      console.log(`- The settlement's shelter provides adequate protection for the night.`);
-    }
-  }
 
   async displayTomorrowPreview() {
     console.log("\nTOMORROW'S PREVIEW:");
