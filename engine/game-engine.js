@@ -7,7 +7,7 @@ const MiddayPhase = require('./phases/midday-phase');
 const AfternoonPhase = require('./phases/afternoon-phase');
 const EveningPhase = require('./phases/evening-phase');
 const gameConfig = require('../config/game-config');
-const chalk = require('chalk');
+const {colortext, boldtext} = require('../utils/styleguide');
 
 // Main game class
 class GameEngine {
@@ -58,8 +58,8 @@ class GameEngine {
     console.log(message);
   }
   displayStatus() {
-    console.log(chalk.bold.blue(`\n--- DAY ${this.day} STATUS ---`));
-    console.log(chalk.bold('\nSETTLERS:'));
+    boldtext(`\n--- DAY ${this.day} STATUS ---`,"blue");
+    boldtext('\nSETTLERS:',"blue");
     this.settlers.forEach((settler, index) => {
       if (settler.busy) {
         let busyStatus;
@@ -77,7 +77,7 @@ class GameEngine {
       }
     });
   
-    console.log(chalk.bold('\nRESOURCES:'));
+    boldtext('\nRESOURCES:', "white");
     console.log(`Food: ${this.settlement.resources.food}`);
     console.log(`Water: ${this.settlement.resources.water}`);
     console.log(`Meds: ${this.settlement.resources.meds}`);
@@ -85,11 +85,11 @@ class GameEngine {
   
     // Display Settlement Hope - passing settlers to the settlement
     const currentHope = this.settlement.getHope(this.settlers);
-    console.log(chalk.bold(`\nSETTLEMENT HOPE: ${currentHope}`));
+    boldtext(`\nSETTLEMENT HOPE: ${currentHope}`, "white");
     this.displayHopeEffect(currentHope);
   
     // Display Settlement Infrastructure
-    console.log(chalk.bold('\nINFRASTRUCTURE:'));
+    boldtext('\nINFRASTRUCTURE:', "white");
     const infrastructureStatus = this.settlement.displayInfrastructureStatus();
     infrastructureStatus.forEach(line => console.log(line));
   }
@@ -187,7 +187,7 @@ class GameEngine {
 
   // Main game loop
   async start() {
-    console.log(chalk.bgCyan.black("=== SKYWARD SETTLERS ==="));
+    colortext("=== SKYWARD SETTLERS ===","bgcyan.black");
     console.log("A post-apocalyptic rooftop settlement simulation");
     console.log("Core Loop Prototype\n");
 
@@ -200,7 +200,7 @@ class GameEngine {
       continueGame = await this.runDayCycle();
     }
 
-    console.log(chalk.cyan("\nThanks for playing Skyward Settlers!"));
+    colortext("\nThanks for playing Skyward Settlers!", "cyan");
     this.rl.close();
   }
 }
