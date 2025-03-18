@@ -1,12 +1,11 @@
 // utils/utils.js
 // Utility functions for Skyward Settlers
-const chalk = require('chalk');
+const {colortext, boldtext, headline} = require('./styleguide');
 
+// TODO: Eliminate, replace by headline function.
 // Print phase headers with decorative borders
 function printPhaseHeader(title) {
-  console.log(chalk.bold.yellow("\n" + "=".repeat(title.length + 8)));
-  console.log(chalk.bold.yellow(`=== ${title} ===`));
-  console.log(chalk.bold.yellow("=".repeat(title.length + 8)));
+  headline(`=== ${title} ===`, "yellow");
 }
 
 // Generate a random integer between min and max (inclusive)
