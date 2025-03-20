@@ -135,6 +135,23 @@ class GameEngine {
     return messages.join('\n');
   }
 
+  getSettlersOnExpedition(){
+    return this.settlers.filter(settler => settler.activity === 'expedition');
+  }
+
+  getSettlersAtHome() {
+    return this.settlers.filter(settler => settler.activity !== 'expedition')
+  }
+
+  getSettlersAvailableForTasks() {
+    return this.settlers.filter(settler => 
+      settler.activity !== 'expedition' && 
+      settler.activity !== 'infrastructure' && 
+      !settler.recovering && 
+      !settler.wounded
+    );
+  }
+
   // Generate a random survivor/visitor
   generateSurvivor() {
     // Random attributes for the survivor

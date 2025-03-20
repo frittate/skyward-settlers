@@ -11,82 +11,36 @@ class AfternoonPhase {
   async execute() {
     printPhaseHeader("AFTERNOON PHASE: TASK ASSIGNMENT");
 
-    // Get available (non-busy and non-recovering) settlers
-    const availableSettlers = this.game.settlers.filter(settler => 
-      !settler.busy && !settler.recovering
-    );
+    this.game.displaySettlerStatus()
 
-    if (availableSettlers.length === 0) {
-      console.log("No settlers available for tasks today.");
-      await this.game.askQuestion("\nPress Enter to continue to Evening Summary...");
-      return;
-    }
-
-    console.log("Available settlers:");
-    availableSettlers.forEach((settler, index) => {
-      console.log(`${index + 1}. ${settler.name} (${settler.role}) - Health: ${settler.health}, Morale: ${settler.morale}`);
-    });
-
-    // Show busy settlers and what they're doing
-    const busySettlers = this.game.settlers.filter(settler => settler.busy);
-    if (busySettlers.length > 0) {
-      console.log("\nCurrently busy settlers:");
-      busySettlers.forEach((settler, index) => {
-        let activity;
-        if (settler.activity === 'expedition') {
-          activity = 'On expedition.'
-        } else if (settler.activity === 'infrastructure') {
-          activity = 'Working on a settlement upgrade.'
-        }
-
-        console.log(`- ${settler.name} (${settler.role}): ${activity}`);
-      });
-    }
-
-    // Calculate how many settlers we can send on expeditions
-    // At least one settler must remain at the settlement
-    const availableForExpedition = Math.max(0, this.game.settlers.length - 1 - 
-      this.game.settlers.filter(s => s.busy || s.recovering).length);
-      
-    if (availableForExpedition <= 0) {
-      console.log("\nWARNING: You must keep at least one settler at the settlement!");
-    }
-
-    // Count of settlers assigned to expeditions this turn
+    const availableSettlers = this.game.getSettlersAvailableForTasks();
+    const maxExpeditionCount = availableSettlers.length > 1 ? availableSettlers.length - 1 : 0;
     let expeditionCount = 0;
-
-    // Assign tasks to each available settler
-    for (let i = 0; i < availableSettlers.length; i++) {
-      const settlerIndex = this.game.settlers.findIndex(s => s.name === availableSettlers[i].name);
-      const settler = this.game.settlers[settlerIndex];
-
+    
+    for (const settler of availableSettlers) {
       console.log(`\nAssign task to ${settler.name}:`);
-
-      // Only show foraging option if we haven't reached the limit
-      if (expeditionCount < availableForExpedition) {
+            
+      // Only allow expedition if it won’t leave the settlement unmanned
+      if (expeditionCount < maxExpeditionCount) {
         console.log("1. Send foraging");
       } else {
         console.log("1. [UNAVAILABLE] Send foraging (must keep at least one settler at settlement)");
       }
 
-      // Only show healing option if there's a medic
-      const hasMedic = this.game.settlers.some(s => s.role === 'Medic');
-      if (hasMedic && settler.role === 'Medic') {
-        console.log("2. Heal (requires medicine and a medic)");
+      // Only show healing option if there is medicine
+      const hasMedicine = this.game.settlement.resources.meds > 0;
+      if (hasMedicine) {
+        console.log("2. Heal");
       } else {
-        console.log("2. [UNAVAILABLE] Heal (requires medicine and a medic)");
+        console.log("2. [UNAVAILABLE] Heal (requires medicine)");
       }
 
       // Show build infrastructure option if there's a mechanic
-      const hasMechanic = this.game.settlers.some(s => s.role === 'Mechanic');
-      if (hasMechanic && settler.role === 'Mechanic') {
+      if (settler.role === 'Mechanic') {
         console.log("3. Build infrastructure (shelter, food production, water collection)");
-      } else {
-        console.log("3. [UNAVAILABLE] Build infrastructure (requires mechanic)");
       }
 
       console.log("4. Rest");
-
 
       // Check if emergency foraging is needed
       const resourcesAreLow = (this.game.settlement.resources.food + this.game.settlement.resources.water) < 4
@@ -96,34 +50,27 @@ class AfternoonPhase {
 
       const taskChoice = await this.game.askQuestion("Choose task: ");
 
-      if (taskChoice === '1') { 
-        // Foraging - check availability and health
-        await this.handleForagingAssignment(settler, expeditionCount, availableForExpedition);
-        // If foraging was assigned, increment counter
+      if (taskChoice === '1' && expeditionCount < maxExpeditionCount) {
+        await this.handleForagingAssignment(settler, expeditionCount, maxExpeditionCount);
         if (settler.busy) {
           expeditionCount++;
         }
       } else if (taskChoice === '2') { 
-        // Healing
-        await this.handleHealingAssignment(settler, hasMedic);
+        await this.handleHealingAssignment(settler);
       } else if (taskChoice === '3') { 
-        // Infrastructure Building
-        await this.handleShelterAssignment(settler, hasMechanic);
+        await this.handleShelterAssignment(settler);
       } else if (taskChoice === '5') {
-        await this.handleForagingAssignment(settler, expeditionCount, availableForExpedition, true);
-        // If foraging was assigned, increment counter
+        await this.handleForagingAssignment(settler, expeditionCount, maxExpeditionCount, true);
         if (settler.busy) {
           expeditionCount++;
         }
-      }
-       else { 
-        // Rest or default
+      } else { 
         const restResult = settler.rest();
-        console.log(restResult);
+        console.log(restResult)
       }
-    }
+    };
 
-      await this.game.askQuestion("\nPress Enter to continue to Evening Summary...");
+    await this.game.askQuestion("\nPress Enter to continue to Evening Summary...");
   }
 
     // Handle infrastructure building assignment
@@ -502,47 +449,42 @@ class AfternoonPhase {
 
   // Handle healing assignment
   async handleHealingAssignment(settler, hasMedic) {
-    if (hasMedic && settler.role === 'Medic' && this.game.settlement.resources.meds > 0) {
-      console.log("Who do you want to heal?");
-      this.game.settlers.forEach((s, idx) => {
-        console.log(`${idx + 1}. ${s.name} - Health: ${s.health}${s.wounded ? ' [WOUNDED]' : ''}`);
-      });
-      
-      const targetChoice = await this.game.askQuestion("Choose settler to heal (1-" + this.game.settlers.length + "): ");
-      const targetIndex = parseInt(targetChoice, 10) - 1;
+    const hasMeds = this.game.settlement.resources.meds > 0;
+    const isMedic = settler.role === 'Medic';
 
-      if (targetIndex >= 0 && targetIndex < this.game.settlers.length) {
-        await this.healSettler(settler, targetIndex);
-      } else {
-        console.log("Invalid choice, settler will rest instead.");
-        const restResult = settler.rest();
-        console.log(restResult);
-      }
+    if (!hasMeds) {
+      console.log('No meds available.');
+      return;
+    }
+  
+    const settlersAtHome = this.game.getSettlersAtHome()
+    console.log("Who do you want to heal?");
+    settlersAtHome.forEach((s, idx) => {
+      console.log(`${idx + 1}. ${s.name} - Health: ${s.health}${s.wounded ? ' [WOUNDED]' : ''}`);
+    });
+    
+    const targetChoice = await this.game.askQuestion("Choose settler to heal (1-" + settlersAtHome.length + "): ");
+    const targetIndex = parseInt(targetChoice, 10) - 1;
+    const targetSettler = settlersAtHome[targetIndex];
+
+    if (targetIndex >= 0 && targetIndex < settlersAtHome.length) {
+      await this.healSettler(targetSettler, isMedic);
     } else {
-      if (!hasMedic) {
-        console.log("You need a medic to heal settlers!");
-      } else if (settler.role !== 'Medic') {
-        console.log(`Only a medic can heal settlers, and ${settler.name} is a ${settler.role}!`);
-      } else {
-        console.log("No medicine available!");
-      }
-      console.log(`${settler.name} will rest instead.`);
+      console.log("Invalid choice, settler will rest instead.");
       const restResult = settler.rest();
       console.log(restResult);
     }
   }
 
   // Heal a settler using medicine
-  async healSettler(medic, targetIndex) {
-    const target = this.game.settlers[targetIndex];
-
+  async healSettler(target, isMedic = false) {
     if (this.game.settlement.resources.meds > 0) {
       this.game.settlement.removeResource('meds', 1);
       
       // Apply healing
-      const healResult = target.heal(1, medic);
+      const healResult = target.heal(1, isMedic);
       
-      let healMessage = `${medic.name} used 1 medicine to heal ${target.name}. Health improved from ${target.health - healResult.healthGained} to ${target.health}.`;
+      let healMessage = `Used 1 medicine to heal ${target.name}. Health improved from ${target.health - healResult.healthGained} to ${target.health}.`;
       
       if (healResult.curedWound) {
         healMessage += ` ${target.name} is no longer wounded.`;

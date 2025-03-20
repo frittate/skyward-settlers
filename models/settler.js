@@ -43,10 +43,8 @@ class Settler {
   // Rest for a day
   rest() {
     if (this.wounded) {
-      // Wounded settlers don't gain any benefits from rest
       return `${this.name} is wounded and cannot recover from resting.`;
     } else {
-      // Resting doesn't automatically improve morale anymore
       return `${this.name} rested but gains no immediate benefits.`;
     }
   }
@@ -131,21 +129,23 @@ class Settler {
   }
 
   // Apply healing with medicine
-  heal(medicineAmount = 1, medic = null) {
+  heal(medicineAmount = 1, isMedic = false) {
     // Base healing amount
-    let healingAmount = 25;
+    let healingAmount = 15;
     
     // Bonus if healed by a medic
-    if (medic && medic.role === 'Medic') {
-      healingAmount += 10;
+    if (isMedic) {
+      healingAmount += 15;
     }
     
     const oldHealth = this.health;
     this.health = Math.min(100, this.health + healingAmount);
     
-    // Cure wounded status
+    // Cure wounded status from medics
     const wasWounded = this.wounded;
-    this.wounded = false;
+    if (isMedic) {
+      this.wounded = false;
+    }
     
     return {
       healthGained: this.health - oldHealth,
@@ -182,12 +182,12 @@ class Settler {
       let activity = "";
       
       if (this.activity === "infrastructure") {
-        activity = "Building infrastructure" 
+        activity = "Building infrastructure";
+        status += ` - BUSY: ${activity} until day ${this.busyUntil}`;
       } else if (this.activity === 'expedition') {
         activity = "On expedition";
+        status += ` - BUSY: §{activity}.`
       }
-      
-      status += ` - BUSY: ${activity} until day ${this.busyUntil}`;
     }
     
     return status;
