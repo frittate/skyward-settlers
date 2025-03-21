@@ -25,9 +25,9 @@ module.exports = {
             'emergency': 0.3
         },
         survivorChance: {
-            'small': 0.1,
-            'medium': 0.125,
-            'large': 0.15,
+            'small': 0.2,
+            'medium': 0.3,
+            'large': 0.4,
             'emergency': 0
         },
         resourceMultiplier: {

@@ -28,9 +28,9 @@ class GameEngine {
 
     // Initialize starter settlers with random health and hope
     this.settlers = [
-      new Settler(selectedNames[0], 'Generalist', this.getRandomHealth(), 85),
-      new Settler(selectedNames[1], 'Generalist', this.getRandomHealth(), 85),
-      new Settler(selectedNames[2], 'Mechanic', this.getRandomHealth(), 85)
+      new Settler(selectedNames[0], 'Generalist', this.getRandomHealth(), 80),
+      new Settler(selectedNames[1], 'Generalist', this.getRandomHealth(), 75),
+      new Settler(selectedNames[2], 'Mechanic', this.getRandomHealth(), 75)
     ];
     
     this.expeditions = []; // Track ongoing expeditions
@@ -173,9 +173,12 @@ class GameEngine {
         break;
       }
     }
+
+    const settlerNames = new Set(this.settlers.map(settler => settler.name))
+    const availableNames = gameConfig.survivorNames.filter(name => !settlerNames.has(name))
   
     // Pick a random name from the config
-    const name = gameConfig.survivorNames[Math.floor(Math.random() * gameConfig.survivorNames.length)];
+    const name = availableNames[Math.floor(Math.random() * availableNames.length)];
   
     // Generate a random gift (a small resource bonus)
     const gift = {

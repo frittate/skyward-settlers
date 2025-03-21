@@ -186,7 +186,7 @@ class Settler {
         status += ` - BUSY: ${activity} until day ${this.busyUntil}`;
       } else if (this.activity === 'expedition') {
         activity = "On expedition";
-        status += ` - BUSY: §{activity}.`
+        status += ` - BUSY: ${activity}.`
       }
     }
     

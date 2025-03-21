@@ -158,6 +158,7 @@ class MorningPhase {
       for (const expedition of returnedExpeditions) {
         const settler = expedition.settler;
         settler.busy = false;
+        settler.activity = '';
 
         // Set recovery period
         settler.recovering = true;
